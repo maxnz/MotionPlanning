@@ -3,12 +3,16 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 
-class Shape {
+open class Shape() {
 
     var vertices = mutableListOf<Pair<Double, Double>>()
     var lines = mutableListOf<Line>()
     private var drawable = false
 
+    constructor(v: List<Pair<Double, Double>>) : this() {
+        vertices = v.toMutableList()
+        makeConvex()
+    }
 
     private fun makeConvex() {
 
@@ -73,15 +77,21 @@ class Shape {
         vertices.removeAt(vertices.size - 1)
     }
 
-    private fun addLines() {
+    open fun addLines() {
         if (lines.isNotEmpty()) lines.clear()
+//        println(vertices.size)
+//        println(vertices)
         vertices.forEachIndexed { index, pair ->
-
+//            println(index)
             val line = Line(pair, vertices[(index + 1) % vertices.size])
 
             lines.add(line)
         }
     }
+
+//    fun getAllLines() : List<Line> {
+//        return lines
+//    }
 
     private fun prepare() {
         drawable = true
@@ -89,7 +99,7 @@ class Shape {
         addLines()
     }
 
-    fun show(pane: Pane) {
+    open fun show(pane: Pane) {
         if (!drawable) {
             prepare()
         }
@@ -98,7 +108,7 @@ class Shape {
         }
     }
 
-    fun hide(pane: Pane) {
+    open fun hide(pane: Pane) {
         for (line in lines)
             if (pane.children.contains(line.myLine)) pane.children.remove(line.myLine)
     }
@@ -120,9 +130,18 @@ class Shape {
             if (it.intersects(testLine)) intersections++
         }
 
-        println(intersections)
-
         return intersections % 2 != 0
+    }
+
+    fun checkSideOfShape(vertex: Pair<Double, Double>, angle: Double): Boolean {
+        val testLine = Line(vertex, Pair(1000.0 * cos(angle), 1000.0 * sin(angle)))
+
+        var intersections = 0
+        lines.forEach {
+            if (it.intersects(testLine)) intersections++
+        }
+
+        return intersections > 0
     }
 
 }

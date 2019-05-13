@@ -1,5 +1,5 @@
-
 import com.jfoenix.controls.JFXButton
+import com.jfoenix.controls.JFXToggleButton
 import javafx.scene.paint.Color
 import tornadofx.*
 import java.util.*
@@ -12,7 +12,7 @@ class Visualization : View() {
     private val criticalAngleLines = mutableListOf<Line>()
     private val criticalAngles = mutableListOf<Double>()
     private val obstacle = Shape()
-    private val shapes = mutableListOf(borderShape, obstacle)
+    private val shapes = mutableListOf(obstacle)
     private val mSums = MinkowskiSums()
 
     override val root = borderpane {
@@ -80,7 +80,7 @@ class Visualization : View() {
                 }
 
                 criticalAngles.sort()
-                mSums.createSums(criticalAngles, shapes)
+                mSums.createSums(criticalAngles, shapes, borderShape)
 
             }
 
@@ -90,69 +90,83 @@ class Visualization : View() {
         }
 
         bottom {
-            hbox {
-                this += JFXButton("Show Connections").apply {
-                    action {
-                        if (this.text == "Show Connections") {
-                            connections.forEach {
-                                it.draw(mainScreen, color = Color.GREEN)
+            vbox {
+                hbox {
+                    this += JFXButton("Show Connections").apply {
+                        action {
+                            if (this.text == "Show Connections") {
+                                connections.forEach {
+                                    it.draw(mainScreen, color = Color.GREEN)
+                                }
+                                this.text = "Hide Connections"
+                            } else if (this.text == "Hide Connections") {
+                                for (line in connections) {
+                                    mainScreen.children.remove(line.myLine)
+                                }
+                                this.text = "Show Connections"
                             }
-                            this.text = "Hide Connections"
-                        } else if (this.text == "Hide Connections") {
-                            for (line in connections) {
-                                mainScreen.children.remove(line.myLine)
-                            }
-                            this.text = "Show Connections"
-                        }
 
-                    }
-                }
-
-                this += JFXButton("Hide Shape").apply {
-                    action {
-                        if (this.text == "Hide Shape") {
-                            obstacle.hide(mainScreen)
-                            this.text = "Show Shape"
-                        } else if (this.text == "Show Shape") {
-                            obstacle.show(mainScreen)
-                            this.text = "Hide Shape"
                         }
                     }
-                }
 
-                this += JFXButton("Show Critical Angles").apply {
-                    action {
-                        if (this.text == "Show Critical Angles") {
-                            criticalAngleLines.forEach {
-                                it.draw(mainScreen, color = Color.RED)
+                    this += JFXButton("Hide Shape").apply {
+                        action {
+                            if (this.text == "Hide Shape") {
+                                obstacle.hide(mainScreen)
+                                this.text = "Show Shape"
+                            } else if (this.text == "Show Shape") {
+                                obstacle.show(mainScreen)
+                                this.text = "Hide Shape"
                             }
-                            this.text = "Hide Critical Angles"
-                        } else if (this.text == "Hide Critical Angles") {
-                            criticalAngleLines.forEach {
-                                mainScreen.children.remove(it.myLine)
+                        }
+                    }
+
+                    this += JFXButton("Show Critical Angles").apply {
+                        action {
+                            if (this.text == "Show Critical Angles") {
+                                criticalAngleLines.forEach {
+                                    it.draw(mainScreen, color = Color.RED)
+                                }
+                                this.text = "Hide Critical Angles"
+                            } else if (this.text == "Hide Critical Angles") {
+                                criticalAngleLines.forEach {
+                                    mainScreen.children.remove(it.myLine)
+                                }
+                                this.text = "Show Critical Angles"
                             }
-                            this.text = "Show Critical Angles"
+                        }
+                    }
+
+                    this += JFXButton("Show Minkowski Sums").apply {
+                        action {
+                            if (this.text == "Show Minkowski Sums") {
+                                mSums.show(mainScreen)
+                                this.text = "Hide Minkowski Sums"
+                            } else if (this.text == "Hide Minkowski Sums") {
+                                mSums.hide(mainScreen)
+                                this.text = "Show Minkowski Sums"
+                            }
+                        }
+                    }
+
+                    this += JFXButton("Next Minkowski Sum").apply {
+                        action {
+                            mSums.showNext(mainScreen)
                         }
                     }
                 }
 
-                this += JFXButton("Show Minkowski Sums").apply {
-                    action {
-                        if (this.text == "Show Minkowski Sums") {
-                            mSums.show(mainScreen)
-                            this.text = "Hide Minkowski Sums"
-                        } else if (this.text == "Hide Minkowski Sums") {
-                            mSums.hide(mainScreen)
-                            this.text = "Show Minkowski Sums"
-                        }
-                    }
+                regionToggle = JFXToggleButton().apply {
+                    text = "Show Region Boundaries"
+                    isSelected = false
+                }
+                minkowskiToggle = JFXToggleButton().apply {
+                    text = "Show Minkowski Exclusion Boundaries"
+                    isSelected = true
                 }
 
-                this += JFXButton("Next Minkowski Sum").apply {
-                    action {
-                        mSums.showNext(mainScreen)
-                    }
-                }
+                this += regionToggle
+                this += minkowskiToggle
             }
         }
     }
