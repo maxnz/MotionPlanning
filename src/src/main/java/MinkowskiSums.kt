@@ -5,14 +5,14 @@ object MinkowskiSums {
 
     private val minkowskiSums = mutableListOf<MinkowskiSum>()
 
-    private var currentSum = -1
+    operator fun get(i: Int): MinkowskiSum = minkowskiSums[i % minkowskiSums.size]
 
-    val currentMSum: MinkowskiSum
-        get() = minkowskiSums[currentSum]
+    val numSums: Int
+        get() = minkowskiSums.size
 
     fun createSums(angles: List<Double>, shapes: List<Shape>, boundary: Shape) {
         for (angle in angles) {
-            minkowskiSums.add(MinkowskiSum(angle, 100.0).apply {
+            minkowskiSums.add(MinkowskiSum(angle, 25.0).apply {
                 for (shape in shapes) {
                     addToSum(shape)
                 }
@@ -21,7 +21,7 @@ object MinkowskiSums {
         }
 
         for (angle in angles) {
-            minkowskiSums.add(MinkowskiSum(angle + PI, 100.0).apply {
+            minkowskiSums.add(MinkowskiSum(angle + PI, 25.0).apply {
                 for (shape in shapes) {
                     addToSum(shape)
                 }
@@ -30,27 +30,23 @@ object MinkowskiSums {
         }
     }
 
-    fun show(pane: Pane) {
-        if (currentSum != -1) minkowskiSums[currentSum % minkowskiSums.size].hide(pane)
-        minkowskiSums.forEach {
-            it.show(pane)
-        }
-        currentSum = -1
-    }
+//    fun show(pane: Pane) {
+//        if (currentSum != -1) minkowskiSums[currentSum % minkowskiSums.size].hide(pane)
+//        minkowskiSums.forEach {
+//            it.show(pane)
+//        }
+//        currentSum = -1
+//    }
 
-    fun showOne(pane: Pane) {
-        hide(pane)
-        minkowskiSums.first().show(pane)
-        currentSum = 0
-    }
-
-    fun showNext(pane: Pane) {
-        if (currentSum == -1) {
-            showOne(pane)
-            return
-        }
-        minkowskiSums[currentSum++ % minkowskiSums.size].hide(pane)
+    fun showOne(pane: Pane, sum: Int = currentSum) {
+        minkowskiSums[currentSum % minkowskiSums.size].hide(pane)
+        currentSum = sum
         minkowskiSums[currentSum % minkowskiSums.size].show(pane)
+    }
+
+    fun showNext(pane: Pane, ladderPane: Pane) {
+        minkowskiSums[currentSum++ % minkowskiSums.size].hide(pane, ladderPane)
+        minkowskiSums[currentSum % minkowskiSums.size].show(pane, ladderPane)
     }
 
     fun hide(pane: Pane) {

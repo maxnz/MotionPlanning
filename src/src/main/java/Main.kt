@@ -18,6 +18,8 @@ val borderShape = Boundary(
     Pair(maxX, 0.0)
 )
 
+var currentSum = 0
+
 var regionToggle: JFXToggleButton by singleAssign()
 var minkowskiToggle: JFXToggleButton by singleAssign()
 

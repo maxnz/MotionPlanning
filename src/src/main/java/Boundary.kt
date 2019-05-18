@@ -15,8 +15,8 @@ class Boundary(topLeft: Pair<Double, Double>,
         vertices.add(bottomLeft)
     }
 
-    override fun addLines() {
-        if (lines.isNotEmpty()) lines.clear()
+    override fun addLines(reset: Boolean) {
+        if (lines.isNotEmpty() && reset) lines.clear()
         lines.add(top)
         lines.add(right)
         lines.add(bottom)

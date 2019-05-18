@@ -29,6 +29,9 @@ open class Shape() {
     }
 
     fun makeConvex() {
+//        for (i in 0 until vertices.size) {
+//            vertices[i] = Pair(vertices[i].first.round(), vertices[i].second.round())
+//        }
 
         val hull: MutableList<Pair<Double, Double>>
 
@@ -89,10 +92,24 @@ open class Shape() {
         }
         vertices = hull
         vertices.removeAt(vertices.size - 1)
+
+        // Remove any remaining collinear points
+        val removeVerts = mutableListOf<Pair<Double, Double>>()
+        for (i in 0 until vertices.size) {
+            if (Line(vertices[i], vertices[(i + 1) % vertices.size]).angle.round(3) == Line(
+                    vertices[(i + 1) % vertices.size],
+                    vertices[(i + 2) % vertices.size]
+                ).angle.round(3)
+            ) removeVerts += vertices[(i + 1) % vertices.size]
+        }
+        for (vert in removeVerts) vertices.remove(vert)
     }
 
-    open fun addLines() {
-        if (lines.isNotEmpty()) lines.clear()
+    open fun addLines(reset: Boolean = false) {
+        when {
+            lines.isNotEmpty() && reset -> lines.clear()
+            lines.isNotEmpty() -> return
+        }
         var currentID = startIDIndex
         vertices.forEachIndexed { index, pair ->
             val line = Line(pair, vertices[(index + 1) % vertices.size])
@@ -118,8 +135,7 @@ open class Shape() {
 
     open fun hide(pane: Pane) {
         for (line in lines) {
-            if (pane.children.contains(line.myLine)) pane.children.remove(line.myLine)
-            line.removeLabel(pane)
+            line.hide(pane)
         }
     }
 

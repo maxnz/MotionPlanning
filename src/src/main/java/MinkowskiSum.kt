@@ -1,28 +1,38 @@
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
+import javafx.scene.shape.Circle
 import javafx.scene.shape.Polygon
 import tornadofx.plusAssign
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+
+// TODO: Clean up
 class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
     private val ladder = javafx.scene.shape.Line().apply {
-        startX = 100.0
-        endX = 100.0 * cos(angle) + 100.0
+        startX = 100.0 - cos(angle) * ladderLength / 2
+        endX = 100.0 + cos(angle) * ladderLength / 2
 
-        startY = 100.0
-        endY = 100.0 * sin(angle) + 100.0
+        startY = 100.0 - sin(angle) * ladderLength / 2
+        endY = 100.0 + sin(angle) * ladderLength / 2
 
         stroke = Color.BLUE
         strokeWidth = 3.0
+    }
+    private val ladderOrigin = Circle().apply {
+        centerX = ladder.startX
+        centerY = ladder.startY
+        radius = 4.0
+        fill = Color.BLUE
     }
     private val offsetX = (ladderLength * cos(angle))
     private val offsetY = (ladderLength * sin(angle))
 
     private val sumShapes = mutableListOf<Shape>()
 
-    private val sumLines = mutableListOf<Line>()
+    private var sumLines = mutableListOf<Line>()
     private lateinit var boundaryShape: Shape
 
     private val inversePoints = mutableListOf<Pair<Double, Double>>()
@@ -48,34 +58,44 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
             addLines()
         }
 
-        val polygonPoints = mutableListOf<Pair<Double, Double>>()
-        for (i in 0 until mShape.lines.size) {
-            val v = mShape.lines[i]
-            if (!polygonPoints.contains(v.p1)) polygonPoints.add(v.p1)
-            if (!polygonPoints.contains(v.p2)) polygonPoints.add(v.p2)
-            if (v.p2.first == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 0.0)
-                polygonPoints.add(Pair(0.0, 0.0))
-            if (v.p2.second == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 500.0)
-                polygonPoints.add(Pair(500.0, 0.0))
-            if (v.p2.first == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 500.0)
-                polygonPoints.add(Pair(500.0, 500.0))
-            if (v.p2.second == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 0.0)
-                polygonPoints.add(Pair(0.0, 500.0))
-        }
+        m@ for (m in mShape.lines)
+            for (s in shape.lines)
+                if (m.angle.round() == s.angle.round() &&
+                    angle.round() != s.angle.round() &&
+                    angle.round() != (s.angle + PI).round()
+                ) {
+                    m.setID(s.myID)
+                    continue@m
+                }
+
+//        val polygonPoints = mutableListOf<Pair<Double, Double>>()
+//        for (i in 0 until mShape.lines.size) {
+//            val v = mShape.lines[i]
+//            if (!polygonPoints.contains(v.p1)) polygonPoints.add(v.p1)
+//            if (!polygonPoints.contains(v.p2)) polygonPoints.add(v.p2)
+//            if (v.p2.first == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 0.0)
+//                polygonPoints.add(Pair(0.0, 0.0))
+//            if (v.p2.second == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 500.0)
+//                polygonPoints.add(Pair(500.0, 0.0))
+//            if (v.p2.first == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 500.0)
+//                polygonPoints.add(Pair(500.0, 500.0))
+//            if (v.p2.second == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 0.0)
+//                polygonPoints.add(Pair(0.0, 500.0))
+//        }
 //        for (v in mShape.lines) {
 //            if (!polygonPoints.contains(v.p1)) polygonPoints.add(v.p1)
 //            if (!polygonPoints.contains(v.p2)) polygonPoints.add(v.p2)
 //        }
 
-        var verts = doubleArrayOf()
-        for (v in polygonPoints) {
-            verts += v.first
-            verts += v.second
-        }
-        val p = Polygon().apply {
-            this.points.addAll(verts.toTypedArray())
-        }
-        polygons.add(p)
+//        var verts = doubleArrayOf()
+//        for (v in polygonPoints) {
+//            verts += v.first
+//            verts += v.second
+//        }
+//        val p = Polygon().apply {
+//            this.points.addAll(verts.toTypedArray())
+//        }
+//        polygons.add(p)
         sumShapes.add(mShape)
     }
 
@@ -145,12 +165,48 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
         sumShapes += Shape(points, 1)
     }
 
-    private fun createLines() {
+//    fun consolidate(lines: List<Line>, vertices: MutableList<Pair<Double, Double>>): List<Line> {
+//        val combos = mutableListOf<Pair<Line, Line>>()
+//        val ret = lines.toMutableList()
+//        println(ret)
+//        for (line in lines) {
+//            l@ for (line2 in lines) {
+//                val i = when {
+//                    line === line2 -> continue@l
+//                    line.p1 == line2.p1 -> 1
+//                    line.p1 == line2.p2 -> 2
+//                    line.p2 == line2.p1 -> 3
+//                    line.p2 == line2.p2 -> 4
+//                    else -> continue@l
+//                }
+//
+//                if (truncate(line.angle) == truncate(line2.angle))
+//                    if (Pair(line, line2) !in combos && Pair(line2, line) !in combos) {
+//                        combos += Pair(line, line2)
+//                        when (i) {
+//                            1,2 -> vertices.remove()
+//                            3,4 -> ret += Line(line.p2, line2.p2)
+//                        }
+//                        println("$line : $line2")
+//                        ret.remove(line)
+//                        ret.remove(line2)
+//                    }
+//            }
+//        }
+//        if (lines != ret) println(ret)
+//        return ret
+//    }
+
+    private fun createLines(pane: Pane) {
         if (sumLines.isNotEmpty()) sumLines.clear()
 
         sumShapes.forEach {
+            it.makeConvex()
             it.addLines()
-            sumLines += it.lines
+//            println(it.lines)
+//            consolidate(it.lines, it.vertices)
+//            println(it.lines)
+            sumLines.addAll(it.lines)
         }
 
         val lines2 = sumLines.toMutableList()
@@ -169,7 +225,7 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
         }
 
         regionBoundaries.findRegionBoundaries(angle, sumLines, inversePoints, boundaryShape)
-        regionBoundaries.findRegions(boundaryShape, sumShapes)
+        regionBoundaries.findRegions(sumLines, pane)
     }
 
     private fun withinBoundaries(line: Line): Boolean {
@@ -188,20 +244,13 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
         return within
     }
 
-//    infix fun Pair<Double, Double>.outside(maximums: Pair<Double, Double>): Boolean {
-//        return !(this.first in 0.0..maximums.first && this.second in 0.0..maximums.second)
-//    }
+    override fun show(pane: Pane) = show(pane, null)
 
-    override fun show(pane: Pane) {
-        createLines()
+    fun show(pane: Pane, ladderPane: Pane? = null) {
+        createLines(pane)
         pane.apply {
             if (minkowskiToggle.isSelected)
-                sumLines.forEach {
-                    if (regionToggle.isSelected)
-                        it.draw(pane, weight = 3.0, color = Color.ORANGE)
-                    else
-                        it.draw(pane, color = Color.ORANGE)
-                }
+                showExclusionBoundary(pane)
             if (regionToggle.isSelected) {
                 regionBoundaries.show(this)
 //                polygons.forEach {
@@ -211,19 +260,55 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 //                    pane += it
 //                }
             }
-            this += ladder
+        }
+        ladderPane?.apply {
+            showLadder(this)
         }
     }
 
-    override fun hide(pane: Pane) {
-        for (line in sumLines) {
-            if (pane.children.contains(line.myLine)) pane.children.remove(line.myLine)
-            line.removeLabel(pane)
+    fun showExclusionBoundary(pane: Pane) {
+        createLines(pane)
+        pane.apply {
+            if (regionToggle.isSelected)
+                regionBoundaries.hide(pane)
+            sumLines.forEach {
+                it.draw(pane, weight = 3.0, color = Color.ORANGE)
+            }
+            if (regionToggle.isSelected)
+                regionBoundaries.show(pane)
         }
+    }
+
+    fun showLadder(pane: Pane) {
+        if (!pane.children.contains(ladderOrigin))
+            pane += ladderOrigin
+        if (!pane.children.contains(ladder))
+            pane += ladder
+    }
+
+    override fun hide(pane: Pane) = hide(pane, null)
+
+    fun hide(pane: Pane, ladderPane: Pane? = null) {
+        hideExclusionBoundary(pane)
         regionBoundaries.hide(pane)
+
         for (polygon in polygons)
             if (pane.children.contains(polygon)) pane.children.remove(polygon)
-        if (pane.children.contains(ladder)) pane.children.remove(ladder)
+        if (ladderPane != null) hideLadder(ladderPane)
     }
+
+    fun hideExclusionBoundary(pane: Pane) {
+        sumLines.forEach {
+            it.hide(pane)
+        }
+    }
+
+    fun hideLadder(pane: Pane) {
+        if (pane.children.contains(ladder))
+            pane.children.remove(ladder)
+        if (pane.children.contains(ladderOrigin))
+            pane.children.remove(ladderOrigin)
+    }
+
 }
 

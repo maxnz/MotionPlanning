@@ -8,6 +8,8 @@ import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.sin
 
+
+// TODO: Refactor
 class RegionBoundaries {
 
     val boundaryLines = mutableListOf<Line>()
@@ -35,6 +37,7 @@ class RegionBoundaries {
         )).absoluteValue
 
     fun findRegionBoundaries(angle: Double, lines: List<Line>, invert: List<Pair<Double, Double>>, boundary: Shape) {
+        if (boundaryLines.isNotEmpty()) return
         this.angle = angle
 
         // Extension functions
@@ -55,20 +58,25 @@ class RegionBoundaries {
             in (3 * PI / 2)..(2 * PI) -> inversePoints += (Pair(0.0, 500.0))
         }
 
-        val vertices = lines.vertices().sortedBy { it.anchorDist() }
+        val vertices = lines.vertices()
+            .filter { it !in boundary.vertices }
+            .sortedBy { it.anchorDist() } + lines.vertices()
+            .filter { it in boundary.vertices }
+            .sortedBy { it.anchorDist() }
         val anchorDists = mutableListOf<Double>()
 
         val maxList = listOf(0.0, 500.0)
         val a = (PI / 2) + angle
 
         for (v in vertices) {
-            anchorDists += v.anchorDist()
+            anchorDists += v.anchorDist().round(2)
         }
 
-        for (d in anchorDists.groupingBy { truncate(it) }.eachCount()) {
+        d@ for (d in anchorDists.groupingBy { it.round(2) }.eachCount()) {
+            println(d)
             if (d.value > 1) {
                 for (b in boundary.vertices)
-                    if (truncate(b.anchorDist()) == d.key && d.value > 2) continue
+                    if (b.anchorDist().round(2) == d.key.round(2) && d.value == 2) continue@d
                 val x = Pair(
                     anchorPoint.first + (cos(a) * d.key),
                     anchorPoint.second + (sin(a) * d.key)
@@ -120,7 +128,7 @@ class RegionBoundaries {
                     )
                     continue@v
                 }
-                v outside boundary -> continue@v
+                v outside boundary || boundaryLines.contains(v) -> continue@v
                 inversePoints.contains(v) -> multiplier = -1
             }
 
@@ -140,13 +148,13 @@ class RegionBoundaries {
                     trim()
 
                     circles += Circle().apply {
-                        radius = 5.0
+                        radius = 4.0
                         fill = Color.BLUE
                         centerX = p1.first
                         centerY = p1.second
                     }
                     circles += Circle().apply {
-                        radius = 5.0
+                        radius = 6.0
                         fill = Color.GREEN
                         centerX = p2.first
                         centerY = p2.second
@@ -155,24 +163,66 @@ class RegionBoundaries {
             )
         }
         boundaryLines.sortBy { it.p1.anchorDist() }
+
     }
 
-    fun findRegions(boundary: Shape, obstacles: List<Shape>) {
+    fun findRegions(lines: List<Line>, pane: Pane) {
 
-        val lines = boundary.lines +
-                mutableListOf<Line>().apply {
-                    obstacles.forEach {
-                        this += it.lines
-                    }
+        val endPoints = mutableMapOf<Line, MutableList<Pair<Int, Int>>>()
+
+        var b = 10
+        boundaryLines.forEach {
+
+            it.setID(b++)
+//            println("${b - 1} $it ${it.p1.anchorDist()}")
+            val p1ints = (it.p1 on lines).filter { it.myID != 0 }
+            val p2ints = (it.p2 on lines).filter { it.myID != 0 }
+
+
+            val linePairs = mutableListOf<Pair<Int, Int>>()
+            p1ints.forEach { l1 ->
+                val i1 = l1.myID
+                p2ints.forEach { l2 ->
+                    val i2 = l2.myID
+                    if (i1 != i2 && Pair(i1, i2) !in linePairs && Pair(i2, i1) !in linePairs)
+                        linePairs += if (i1 < i2) Pair(i1, i2) else Pair(i2, i1)
                 }
+            }
+            if (linePairs.isEmpty()) throw Exception()
+//            if (linePairs.isEmpty()) {
+//                it.weight = 5.0
+//                println("================================================")
+//                print("\tP1: ")
+//                val p1ints2 = (it.p1 on lines)
+//                p1ints2.forEach {
+//                    print("${it.myID} ")
+//                }
+//                println()
+//                val p2ints2 = (it.p2 on lines)
+//                print("\tP2: ")
+//                p2ints2.forEach {
+//                    print("${it.myID} ")
+//                }
+//                println()
+//            }
 
-        for (b in boundaryLines.sortedBy { it.p1.anchorDist() }.reversed()) {
-            println("A: ${b.p2}")
-            val l = lines.filter { b.p2 on it }.minBy { it.p1.anchorDist() } ?: continue
-            println("B: ${l.myID}")
-
+            endPoints[it] = linePairs
         }
 
+//        endPoints.forEach {
+//            println("${it.key.myID} : ${it.value}")
+//        }
+
+        for (line in endPoints) {
+//            println(line.key.myID)
+            for (ending in line.value)
+                for (target in endPoints) {
+                    if (ending in target.value && line !== target) {
+                        println("${line.key.myID} - ${target.key.myID}: $ending")
+
+                    }
+                }
+        }
 
     }
 
@@ -181,17 +231,19 @@ class RegionBoundaries {
             it.draw(pane, weight = 1.0, color = Color.RED)
         }
         circles.forEach {
-            pane += it
+            if (!pane.children.contains(it))
+                pane += it
         }
         labels.forEach {
-            pane += it
+            if (!pane.children.contains(it))
+                pane += it
         }
 
     }
 
     fun hide(pane: Pane) {
         boundaryLines.forEach {
-            if (pane.children.contains(it.myLine)) pane.children.remove(it.myLine)
+            it.hide(pane)
         }
         circles.forEach {
             if (pane.children.contains(it)) pane.children.remove(it)
