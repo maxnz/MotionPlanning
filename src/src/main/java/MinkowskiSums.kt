@@ -1,11 +1,14 @@
 import javafx.scene.layout.Pane
 import kotlin.math.PI
 
-class MinkowskiSums {
+object MinkowskiSums {
 
     private val minkowskiSums = mutableListOf<MinkowskiSum>()
 
     private var currentSum = -1
+
+    val currentMSum: MinkowskiSum
+        get() = minkowskiSums[currentSum]
 
     fun createSums(angles: List<Double>, shapes: List<Shape>, boundary: Shape) {
         for (angle in angles) {

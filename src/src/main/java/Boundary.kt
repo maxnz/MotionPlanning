@@ -23,4 +23,5 @@ class Boundary(topLeft: Pair<Double, Double>,
         lines.add(left)
     }
 
+    fun toShape() = Shape(vertices)
 }

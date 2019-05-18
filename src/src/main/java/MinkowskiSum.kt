@@ -2,7 +2,8 @@ import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import javafx.scene.shape.Polygon
 import tornadofx.plusAssign
-import kotlin.math.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
@@ -22,27 +23,54 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
     private val sumShapes = mutableListOf<Shape>()
 
     private val sumLines = mutableListOf<Line>()
-    private val cellLines = mutableListOf<Line>()
+    private lateinit var boundaryShape: Shape
 
     private val inversePoints = mutableListOf<Pair<Double, Double>>()
 
     private val polygons = mutableListOf<Polygon>()
 
+    val regionBoundaries = RegionBoundaries()
+
     fun addToSum(shape: Shape) {
 
         val points = mutableListOf<Pair<Double, Double>>()
-        for (line in shape.lines) {
-            points.add(Pair(line.p1.first - offsetX, line.p1.second - offsetY))
+        shape.lines.forEach { line ->
+            points += Pair(line.p1.first - offsetX, line.p1.second - offsetY)
         }
-        for (v in shape.vertices) {
-            if (!points.contains(v)) points.add(Pair(v.first, v.second))
+        shape.vertices.forEach { v ->
+            if (v !in points) points += Pair(v.first, v.second)
         }
-        inversePoints += shape.vertices
-        val mShape = Shape(points)
+
+        val mShape = Shape(points).apply {
+            vertices.forEach { v ->
+                if (v in shape.vertices) inversePoints += v
+            }
+            addLines()
+        }
+
+        val polygonPoints = mutableListOf<Pair<Double, Double>>()
+        for (i in 0 until mShape.lines.size) {
+            val v = mShape.lines[i]
+            if (!polygonPoints.contains(v.p1)) polygonPoints.add(v.p1)
+            if (!polygonPoints.contains(v.p2)) polygonPoints.add(v.p2)
+            if (v.p2.first == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 0.0)
+                polygonPoints.add(Pair(0.0, 0.0))
+            if (v.p2.second == 0.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 500.0)
+                polygonPoints.add(Pair(500.0, 0.0))
+            if (v.p2.first == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.second == 500.0)
+                polygonPoints.add(Pair(500.0, 500.0))
+            if (v.p2.second == 500.0 && mShape.lines[(i + 1) % mShape.lines.size].p1.first == 0.0)
+                polygonPoints.add(Pair(0.0, 500.0))
+        }
+//        for (v in mShape.lines) {
+//            if (!polygonPoints.contains(v.p1)) polygonPoints.add(v.p1)
+//            if (!polygonPoints.contains(v.p2)) polygonPoints.add(v.p2)
+//        }
+
         var verts = doubleArrayOf()
-        for (v in mShape.vertices) {
-            if (!verts.contains(v.first)) verts += v.first
-            if (!verts.contains(v.second)) verts += v.second
+        for (v in polygonPoints) {
+            verts += v.first
+            verts += v.second
         }
         val p = Polygon().apply {
             this.points.addAll(verts.toTypedArray())
@@ -53,8 +81,8 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
     fun addBoundaryToSum(boundary: Shape) {
         val points = mutableListOf<Pair<Double, Double>>()
-        for (line in boundary.lines) {
-            points.add(Pair(line.p1.first - offsetX, line.p1.second - offsetY))
+        boundary.lines.forEach { line ->
+            points += Pair(line.p1.first - offsetX, line.p1.second - offsetY)
         }
 
         for (p in 0 until points.size) {
@@ -64,9 +92,57 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
             if (points[p].second > 500.0) points[p] = Pair(points[p].first, 500.0)
         }
 
-        
+        boundaryShape = Shape(points)
 
-        sumShapes.add(Shape(points))
+        fun MutableList<Pair<Double, Double>>.toTypedDoubleArray(): Array<Double> {
+            var ret = doubleArrayOf()
+            this.forEach {
+                ret += it.first
+                ret += it.second
+            }
+            return ret.toTypedArray()
+        }
+
+        val polygonPoints = mutableListOf<Pair<Double, Double>>()
+        val includePoints = borderShape.vertices.toMutableList()
+        points.forEach { p ->
+            if (borderShape.vertices.contains(p)) includePoints.remove(p)
+        }
+
+        val indices = listOf(
+            listOf(1, 2, 3, 1, 2, 3),
+            listOf(0, 1, 2, 2, 3, 0),
+            listOf(3, 0, 1, 3, 0, 1),
+            listOf(0, 3, 2, 2, 1, 0)
+        )
+
+        when {
+            Pair(0.0, 0.0) !in includePoints -> {
+                indices[0].forEachIndexed { index, i ->
+                    polygonPoints += if (index < 3) points[i] else borderShape.vertices[i]
+                }
+            }
+            Pair(500.0, 0.0) !in includePoints -> {
+                indices[1].forEachIndexed { index, i ->
+                    polygonPoints += if (index < 3) points[i] else borderShape.vertices[i]
+                }
+            }
+            Pair(500.0, 500.0) !in includePoints -> {
+                indices[2].forEachIndexed { index, i ->
+                    polygonPoints += if (index < 3) points[i] else borderShape.vertices[i]
+                }
+            }
+            Pair(0.0, 500.0) !in includePoints -> {
+                indices[3].forEachIndexed { index, i ->
+                    polygonPoints += if (index < 3) points[i] else borderShape.vertices[i]
+                }
+            }
+        }
+
+        polygons += Polygon().apply {
+            this.points.addAll(polygonPoints.toTypedDoubleArray())
+        }
+        sumShapes += Shape(points, 1)
     }
 
     private fun createLines() {
@@ -82,30 +158,39 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
             if (!withinBoundaries(line)) sumLines.remove(line)
         }
         for (line in sumLines) {
-            line.trim()
+            line.trim(
+                xmin = boundaryShape.vertices[0].first,
+                xmax = boundaryShape.vertices[2].first,
+                ymin = boundaryShape.vertices[0].second,
+                ymax = boundaryShape.vertices[2].second
+            )
             if (!vertices.contains(line.p1)) vertices.add(line.p1)
             if (!vertices.contains(line.p2)) vertices.add(line.p2)
         }
 
-        addRegionBoundaries()
+        regionBoundaries.findRegionBoundaries(angle, sumLines, inversePoints, boundaryShape)
+        regionBoundaries.findRegions(boundaryShape, sumShapes)
     }
 
     private fun withinBoundaries(line: Line): Boolean {
-
-        val within = (line.p1.first in 0.0..500.0 && line.p1.second in 0.0..500.0)
-                || (line.p2.first in 0.0..500.0 && line.p2.second in 0.0..500.0)
-
+        if (!this::boundaryShape.isInitialized) boundaryShape = borderShape.toShape()
+        val within =
+            (line.p1.first in boundaryShape.vertices[0].first..boundaryShape.vertices[2].first
+                    && line.p1.second in boundaryShape.vertices[0].second..boundaryShape.vertices[2].second)
+                    || (line.p2.first in boundaryShape.vertices[0].first..boundaryShape.vertices[2].first
+                    && line.p2.second in boundaryShape.vertices[0].second..boundaryShape.vertices[2].second)
+        boundaryShape.addLines()
         if (!within) {
-            for (b in borderShape.lines) {
+            for (b in boundaryShape.lines) {
                 if (b.intersects(line)) return true
             }
         }
         return within
     }
 
-    infix fun Pair<Double, Double>.outside(maximums: Pair<Double, Double>): Boolean {
-        return !(this.first in 0.0..maximums.first && this.second in 0.0..maximums.second)
-    }
+//    infix fun Pair<Double, Double>.outside(maximums: Pair<Double, Double>): Boolean {
+//        return !(this.first in 0.0..maximums.first && this.second in 0.0..maximums.second)
+//    }
 
     override fun show(pane: Pane) {
         createLines()
@@ -118,64 +203,27 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
                         it.draw(pane, color = Color.ORANGE)
                 }
             if (regionToggle.isSelected) {
-                cellLines.forEach {
-                    it.draw(pane, weight = 2.0, color = Color.RED)
-                }
-                polygons.forEach {
-                    it.stroke = Color.ORANGE
-                    it.strokeWidth = 3.0
-                    it.fill = Color.LIGHTGRAY
-                    pane += it
-                }
+                regionBoundaries.show(this)
+//                polygons.forEach {
+//                    it.stroke = Color.ORANGE
+//                    it.strokeWidth = 3.0
+//                    it.fill = Color.LIGHTGRAY
+//                    pane += it
+//                }
             }
             this += ladder
         }
     }
 
     override fun hide(pane: Pane) {
-        for (line in sumLines)
+        for (line in sumLines) {
             if (pane.children.contains(line.myLine)) pane.children.remove(line.myLine)
-        for (line in cellLines)
-            if (pane.children.contains(line.myLine)) pane.children.remove(line.myLine)
+            line.removeLabel(pane)
+        }
+        regionBoundaries.hide(pane)
         for (polygon in polygons)
             if (pane.children.contains(polygon)) pane.children.remove(polygon)
         if (pane.children.contains(ladder)) pane.children.remove(ladder)
-    }
-
-
-    private fun addRegionBoundaries() {
-        v@ for (v in vertices) {
-            var multiplier = 1
-            when {
-                (v.first == 0.0 || v.first == 500.0) && v.second != 0.0 && v.second != 500.0 ||
-                        (v.second == 0.0 || v.second == 500.0) && v.first != 0.0 && v.first != 500.0 ->
-                    continue@v
-                inversePoints.contains(v) -> multiplier = -1
-            }
-            val line = Line(
-                Pair(v.first, v.second),
-                Pair(v.first - (multiplier * 1000.0) * cos(angle), v.second - (multiplier * 1000.0) * sin(angle))
-            )
-
-            val intersections = mutableListOf<Pair<Double, Double>>()
-
-            for (l in sumLines) {
-                if (line.intersects(l)) intersections.add(line.intersection(l)!!)
-            }
-
-            fun length(p1: Pair<Double, Double>, p2: Pair<Double, Double>): Double =
-                sqrt((p1.first - p2.first).absoluteValue.pow(2) + (p1.second - p2.second).absoluteValue.pow(2))
-
-            var min = line.p2
-            for (i in intersections) {
-                if (length(line.p1, i) < length(line.p1, min)) min = i
-            }
-
-            line.p2 = min
-            line.trim()
-
-            cellLines.add(line)
-        }
     }
 }
 

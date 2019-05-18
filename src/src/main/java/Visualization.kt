@@ -1,19 +1,13 @@
+
 import com.jfoenix.controls.JFXButton
 import com.jfoenix.controls.JFXToggleButton
-import javafx.scene.paint.Color
 import tornadofx.*
-import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
 
 class Visualization : View() {
 
-    private val connections = mutableListOf<Line>()
-    private val criticalAngleLines = mutableListOf<Line>()
-    private val criticalAngles = mutableListOf<Double>()
-    private val obstacle = Shape()
+    private val obstacle = Shape(5)
     private val shapes = mutableListOf(obstacle)
-    private val mSums = MinkowskiSums()
+    private val mSums = MinkowskiSums
 
     override val root = borderpane {
 
@@ -35,52 +29,32 @@ class Visualization : View() {
 
         val mainScreen =
             pane {
+                fun Shape.addRandVertices(count: Int = 4) {
+//                    val random = Random()
+//                    for (x in 0 until count) {
+//                        this.vertices.add(
+//                            Pair(
+//                                random.nextDouble() * maxX,
+//                                random.nextDouble() * maxY
+//                            )
+//                        )
+//                    }
+                    this.vertices.add(Pair(212.19178247050118, 199.41125225953704))
+                    this.vertices.add(Pair(380.00054194846786, 185.41255624578795))
+                    this.vertices.add(Pair(335.1452304226062, 290.1791465715141))
+                    this.vertices.add(Pair(285.0921122830405, 355.79432650181644))
+                    this.makeConvex()
+                    this.addLines()
+                    this.setLineIDs(startID = 5)
+                    println(this.vertices)
+                }
+
                 borderShape.show(this)
-
-                val random = Random()
-                for (x in 0..3) {
-                    obstacle.vertices.add(
-                        Pair(
-                            random.nextDouble() * maxX,
-                            random.nextDouble() * maxY
-                        )
-                    )
-                }
-
+                obstacle.addRandVertices()
                 obstacle.show(this)
-                obstacle.getCriticalAngles(criticalAngleLines)
+                CritAngles.findCritAngles(listOf(obstacle))
 
-                for (v1 in borderShape.vertices) {
-                    for (v2 in obstacle.vertices) {
-                        val line = Line(v1, v2)
-                        var intersect = false
-                        for (l in obstacle.lines) {
-                            if (line.intersects(l)) {
-                                intersect = true
-                                break
-                            }
-                        }
-                        if (!intersect) connections.add(line)
-                    }
-                }
-
-                connections.forEach {
-                    var line =
-                        Line(
-                            Pair(100.0, 100.0),
-                            Pair(25.0 * cos(it.angle) + 100.0, 25.0 * sin(it.angle) + 100.0)
-                        )
-                    criticalAngleLines.add(line)
-                    line = Line(
-                        Pair(100.0, 100.0),
-                        Pair(100.0 - 25.0 * cos(it.angle), 100.0 - 25.0 * sin(it.angle))
-                    )
-                    criticalAngleLines.add(line)
-                    criticalAngles.add(it.angle)
-                }
-
-                criticalAngles.sort()
-                mSums.createSums(criticalAngles, shapes, borderShape)
+                mSums.createSums(CritAngles.critAngles, shapes, borderShape)
 
             }
 
@@ -95,14 +69,10 @@ class Visualization : View() {
                     this += JFXButton("Show Connections").apply {
                         action {
                             if (this.text == "Show Connections") {
-                                connections.forEach {
-                                    it.draw(mainScreen, color = Color.GREEN)
-                                }
+                                CritAngles.showConnections(mainScreen)
                                 this.text = "Hide Connections"
                             } else if (this.text == "Hide Connections") {
-                                for (line in connections) {
-                                    mainScreen.children.remove(line.myLine)
-                                }
+                                CritAngles.hideConnections(mainScreen)
                                 this.text = "Show Connections"
                             }
 
@@ -124,14 +94,10 @@ class Visualization : View() {
                     this += JFXButton("Show Critical Angles").apply {
                         action {
                             if (this.text == "Show Critical Angles") {
-                                criticalAngleLines.forEach {
-                                    it.draw(mainScreen, color = Color.RED)
-                                }
+                                CritAngles.showCritAngles(mainScreen)
                                 this.text = "Hide Critical Angles"
                             } else if (this.text == "Hide Critical Angles") {
-                                criticalAngleLines.forEach {
-                                    mainScreen.children.remove(it.myLine)
-                                }
+                                CritAngles.hideCritAngles(mainScreen)
                                 this.text = "Show Critical Angles"
                             }
                         }
@@ -154,6 +120,14 @@ class Visualization : View() {
                             mSums.showNext(mainScreen)
                         }
                     }
+
+                    this += JFXButton("Print").apply{
+                        action{
+                            print(mSums.currentMSum.angle)
+                            print(" : ")
+                            println(mSums.currentMSum.regionBoundaries.boundaryLines)
+                        }
+                    }
                 }
 
                 regionToggle = JFXToggleButton().apply {
@@ -170,5 +144,4 @@ class Visualization : View() {
             }
         }
     }
-
 }
