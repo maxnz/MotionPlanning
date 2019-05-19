@@ -213,15 +213,81 @@ class RegionBoundaries {
 //            println("${it.key.myID} : ${it.value}")
 //        }
 
+        fun MutableList<RegionBoundary>.contains(intercept: Double?): Boolean {
+            for (rb in this)
+                if (intercept?.round(2) == rb.intercept) return true
+            return false
+        }
+
+        fun MutableList<RegionBoundary>.contains(line: Line): Boolean {
+            for (rb in this)
+                if (line in rb.lines) return true
+            return false
+        }
+
+        fun MutableList<RegionBoundary>.find(intercept: Double): RegionBoundary {
+            for (rb in this)
+                if (intercept.round(2) == rb.intercept) return rb
+            return this[0]
+        }
+
+        fun MutableList<RegionBoundary>.find(line: Line): RegionBoundary {
+            for (rb in this) {
+                if (rb.lines.contains(line)) return rb
+            }
+            throw Exception()
+        }
+
+        val regionLines = mutableListOf<RegionBoundary>()
+
+        for (line in boundaryLines) {
+            if (line.p1 dist line.p2 == 0.0) regionLines += RegionBoundary(null).apply {
+                this.lines += line
+            }
+            val intercept = line.intercept ?: continue
+            if (!regionLines.contains(line.intercept))
+                regionLines += RegionBoundary(intercept.round(2)).apply {
+                    this.lines += line
+                }
+            else if (!regionLines.contains(line))
+                regionLines.find(intercept).lines += line
+        }
+
+        val regionLinePairs =
+            mutableMapOf<Pair<Int, Int>, MutableList<Pair<RegionBoundary, RegionBoundary>>>()
+
         for (line in endPoints) {
-//            println(line.key.myID)
             for (ending in line.value)
                 for (target in endPoints) {
                     if (ending in target.value && line !== target) {
                         println("${line.key.myID} - ${target.key.myID}: $ending")
 
+                        if (regionLinePairs[ending] == null) regionLinePairs[ending] = mutableListOf()
+                        if (Pair(regionLines.find(line.key), regionLines.find(target.key))
+                            !in regionLinePairs[ending]!! &&
+                            Pair(regionLines.find(target.key), regionLines.find(line.key))
+                            !in regionLinePairs[ending]!!
+                        )
+                            regionLinePairs[ending]!!.add(
+                                Pair(
+                                    regionLines.find(line.key),
+                                    regionLines.find(target.key)
+                                )
+                            )
                     }
                 }
+        }
+        regionLinePairs.forEach {
+            println(it)
+        }
+
+        regionLinePairs.forEach {
+            for (v in it.value)
+                for (r in regionLinePairs)
+                    for (rv in r.value)
+                        if (it !== r && (v.first == rv.first || v.first == rv.second || v.second == rv.first || v.second == rv.second))
+                            println("${it.key} : ${r.key}")
+
         }
 
     }
