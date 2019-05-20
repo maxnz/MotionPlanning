@@ -28,6 +28,7 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
 
     // Sum boundary offset
+
     private val offsetX = (ladderLength * cos(angle))
     private val offsetY = (ladderLength * sin(angle))
 
