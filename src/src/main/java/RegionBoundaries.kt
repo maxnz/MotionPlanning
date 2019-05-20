@@ -1,3 +1,8 @@
+import com.fxgraph.cells.AbstractCell
+import com.fxgraph.edges.Edge
+import com.fxgraph.graph.Graph
+import graph.CircleLayout
+import graph.RectangleCell
 import javafx.scene.control.Label
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
@@ -9,16 +14,16 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 
-// TODO: Refactor
 class RegionBoundaries {
 
-    val boundaryLines = mutableListOf<Line>()
-    val circles = mutableListOf<Circle>()
-    val labels = mutableListOf<Label>()
+    private val boundaryLines = mutableListOf<Line>()
+    private val circles = mutableListOf<Circle>()
+    private val labels = mutableListOf<Label>()
+    private lateinit var graph: Graph
 
     var angle: Double = 0.0
 
-    val anchorPoint: Pair<Double, Double>
+    private val anchorPoint: Pair<Double, Double>
         get() = when (angle) {
             0.0 -> Pair(0.0, 0.0)
             in 0.0..(PI / 2) -> Pair(500.0, 0.0)
@@ -28,15 +33,19 @@ class RegionBoundaries {
             else -> Pair(0.0, 0.0)
         }
 
-    private fun Pair<Double, Double>.anchorDist(): Double =
-        ((anchorPoint dist this) * cos(
-            (Line(
-                anchorPoint,
-                this
-            ).angle - (PI / 2) - angle).absoluteValue
-        )).absoluteValue
+    private val regions = mutableListOf<Region>()
 
-    fun findRegionBoundaries(angle: Double, lines: List<Line>, invert: List<Pair<Double, Double>>, boundary: Shape) {
+    private fun Pair<Double, Double>.anchorDist() =
+        ((anchorPoint dist this) *
+                cos((Line(anchorPoint, this).angle - (PI / 2) - angle).absoluteValue)).absoluteValue
+
+    fun findRegionBoundaries(
+        angle: Double,
+        lines: List<Line>,
+        invert: List<Pair<Double, Double>>,
+        boundary: Shape,
+        obstacles: List<Shape>
+    ) {
         if (boundaryLines.isNotEmpty()) return
         this.angle = angle
 
@@ -61,8 +70,14 @@ class RegionBoundaries {
         val vertices = lines.vertices()
             .filter { it !in boundary.vertices }
             .sortedBy { it.anchorDist() } + lines.vertices()
-            .filter { it in boundary.vertices }
+            .filter { it in boundary.vertices }.filter {
+                var inShape = false
+                obstacles.forEach { ob -> if (ob.checkPointInShape(it)) inShape = true }
+                !inShape
+            }
             .sortedBy { it.anchorDist() }
+
+
         val anchorDists = mutableListOf<Double>()
 
         val maxList = listOf(0.0, 500.0)
@@ -73,7 +88,6 @@ class RegionBoundaries {
         }
 
         d@ for (d in anchorDists.groupingBy { it.round(2) }.eachCount()) {
-            println(d)
             if (d.value > 1) {
                 for (b in boundary.vertices)
                     if (b.anchorDist().round(2) == d.key.round(2) && d.value == 2) continue@d
@@ -114,17 +128,15 @@ class RegionBoundaries {
                 (v.first in maxList && v.second !in maxList) ||
                         (v.second in maxList && v.first !in maxList) -> {
                     boundaryLines.add(
-                        Line(
-                            Pair(v.first, v.second),
-                            Pair(v.first, v.second)
-                        ).apply {
-                            circles += Circle().apply {
-                                radius = 5.0
-                                fill = Color.GREEN
-                                centerX = p2.first
-                                centerY = p2.second
+                        Line(Pair(v.first, v.second), Pair(v.first, v.second))
+                            .apply {
+                                circles += Circle().apply {
+                                    radius = 5.0
+                                    fill = Color.GREEN
+                                    centerX = p2.first
+                                    centerY = p2.second
+                                }
                             }
-                        }
                     )
                     continue@v
                 }
@@ -137,14 +149,10 @@ class RegionBoundaries {
                     Pair(v.first, v.second),
                     Pair(v.first - (multiplier * 1000.0) * cos(angle), v.second - (multiplier * 1000.0) * sin(angle))
                 ).apply line@{
-                    p2 =
-                        mutableListOf<Pair<Double, Double>>()
-                            .apply {
-                                lines.forEach {
-                                    if (this@line intersects it) add((this@line intersection it)!!)
-                                }
-                            }
-                            .minBy { it dist p1 } ?: p2
+                    p2 = mutableListOf<Pair<Double, Double>>()
+                        .apply { lines.forEach { if (this@line intersects it) add((this@line intersection it)!!) } }
+                        .minBy { it dist p1 } ?: p2
+
                     trim()
 
                     circles += Circle().apply {
@@ -163,159 +171,175 @@ class RegionBoundaries {
             )
         }
         boundaryLines.sortBy { it.p1.anchorDist() }
+        var b = 10
+        boundaryLines.forEach { it.setID(b++) }
+
+        infix fun Double.between(line: Line) =
+            this in if (line.p1.first < line.p2.first) line.p1.first..line.p2.first else line.p2.first..line.p1.first
+
+        boundaryLines.forEach {
+            line@ for (line in boundaryLines) {
+                when {
+                    it === line || Pair(it.myID, line.myID) in adjacentBoundaries ||
+                            Pair(line.myID, it.myID) in adjacentBoundaries -> continue@line
+                    it.intercept != null && it.intercept.round(2) == line.intercept?.round(2) &&
+                            (it.p1.first between line || it.p2.first between line ||
+                                    line.p1.first between it || line.p2.first between it)
+                    -> if (it.myID < line.myID)
+                        adjacentBoundaries.add(Pair(it.myID, line.myID))
+                    else
+                        adjacentBoundaries.add(Pair(line.myID, it.myID))
+                }
+            }
+        }
+
 
     }
 
-    fun findRegions(lines: List<Line>, pane: Pane) {
+    fun findRegions(lines: List<Line>) {
+        regions.clear()
 
         val endPoints = mutableMapOf<Line, MutableList<Pair<Int, Int>>>()
 
-        var b = 10
         boundaryLines.forEach {
 
-            it.setID(b++)
-//            println("${b - 1} $it ${it.p1.anchorDist()}")
             val p1ints = (it.p1 on lines).filter { it.myID != 0 }
             val p2ints = (it.p2 on lines).filter { it.myID != 0 }
 
-
             val linePairs = mutableListOf<Pair<Int, Int>>()
-            p1ints.forEach { l1 ->
-                val i1 = l1.myID
-                p2ints.forEach { l2 ->
-                    val i2 = l2.myID
+            p1ints.forEach { ln1 ->
+                val i1 = ln1.myID
+                p2ints.forEach { ln2 ->
+                    val i2 = ln2.myID
                     if (i1 != i2 && Pair(i1, i2) !in linePairs && Pair(i2, i1) !in linePairs)
                         linePairs += if (i1 < i2) Pair(i1, i2) else Pair(i2, i1)
                 }
             }
-            if (linePairs.isEmpty()) throw Exception()
-//            if (linePairs.isEmpty()) {
-//                it.weight = 5.0
-//                println("================================================")
-//                print("\tP1: ")
-//                val p1ints2 = (it.p1 on lines)
-//                p1ints2.forEach {
-//                    print("${it.myID} ")
-//                }
-//                println()
-//                val p2ints2 = (it.p2 on lines)
-//                print("\tP2: ")
-//                p2ints2.forEach {
-//                    print("${it.myID} ")
-//                }
-//                println()
-//            }
+//            if (linePairs.isEmpty()) throw Exception()
+            if (linePairs.isEmpty()) {
+                it.weight = 5.0
+                println("==================  ${it.myID}  ==============================")
+                print("\tP1: ")
+                val p1ints2 = (it.p1 on lines)
+                p1ints2.forEach {
+                    print("${it.myID} ")
+                }
+                println()
+                val p2ints2 = (it.p2 on lines)
+                print("\tP2: ")
+                p2ints2.forEach {
+                    print("${it.myID} ")
+                }
+                println()
+            }
 
             endPoints[it] = linePairs
         }
 
-//        endPoints.forEach {
-//            println("${it.key.myID} : ${it.value}")
-//        }
-
-        fun MutableList<RegionBoundary>.contains(intercept: Double?): Boolean {
-            for (rb in this)
-                if (intercept?.round(2) == rb.intercept) return true
+        fun MutableList<Region>.contains(id: Pair<Int, Int>): Boolean {
+            this.forEach {
+                if (it.regionID == id || it.regionID == Pair(id.second, id.first)) return true
+            }
             return false
         }
 
-        fun MutableList<RegionBoundary>.contains(line: Line): Boolean {
-            for (rb in this)
-                if (line in rb.lines) return true
+        fun MutableList<Region>.containsSimilar(id: Pair<Int, Int>, line1: Line, line2: Line): Boolean {
+            this.forEach {
+                if ((it.regionID == id || it.regionID == Pair(id.second, id.first)) &&
+                    (it.boundary1.myID == line1.myID || it.boundary2.myID == line2.myID ||
+                            it.boundary1.myID == line2.myID || it.boundary2.myID == line1.myID)
+                ) return true
+            }
             return false
         }
 
-        fun MutableList<RegionBoundary>.find(intercept: Double): RegionBoundary {
-            for (rb in this)
-                if (intercept.round(2) == rb.intercept) return rb
-            return this[0]
-        }
-
-        fun MutableList<RegionBoundary>.find(line: Line): RegionBoundary {
-            for (rb in this) {
-                if (rb.lines.contains(line)) return rb
+        fun MutableList<Region>.find(id: Pair<Int, Int>): List<Region> {
+            val ret = mutableListOf<Region>()
+            this.forEach {
+                if (it.regionID == id || it.regionID == Pair(id.second, id.first)) ret += it
             }
-            throw Exception()
+            return ret
         }
-
-        val regionLines = mutableListOf<RegionBoundary>()
-
-        for (line in boundaryLines) {
-            if (line.p1 dist line.p2 == 0.0) regionLines += RegionBoundary(null).apply {
-                this.lines += line
-            }
-            val intercept = line.intercept ?: continue
-            if (!regionLines.contains(line.intercept))
-                regionLines += RegionBoundary(intercept.round(2)).apply {
-                    this.lines += line
-                }
-            else if (!regionLines.contains(line))
-                regionLines.find(intercept).lines += line
-        }
-
-        val regionLinePairs =
-            mutableMapOf<Pair<Int, Int>, MutableList<Pair<RegionBoundary, RegionBoundary>>>()
 
         for (line in endPoints) {
             for (ending in line.value)
                 for (target in endPoints) {
-                    if (ending in target.value && line !== target) {
-                        println("${line.key.myID} - ${target.key.myID}: $ending")
-
-                        if (regionLinePairs[ending] == null) regionLinePairs[ending] = mutableListOf()
-                        if (Pair(regionLines.find(line.key), regionLines.find(target.key))
-                            !in regionLinePairs[ending]!! &&
-                            Pair(regionLines.find(target.key), regionLines.find(line.key))
-                            !in regionLinePairs[ending]!!
-                        )
-                            regionLinePairs[ending]!!.add(
-                                Pair(
-                                    regionLines.find(line.key),
-                                    regionLines.find(target.key)
-                                )
-                            )
+                    if (ending in target.value && line != target) {
+                        if (!regions.contains(ending)) {
+                            regions += Region(ending, line.key, target.key)
+                            println("A ${line.key.myID} - ${target.key.myID}: $ending")
+                        } else if (!regions.containsSimilar(ending, line.key, target.key)) {
+                            var a = 1
+                            regions.find(ending).forEach { it.subID = a++ }
+                            regions += Region(ending, line.key, target.key).apply { subID = a }
+                            println("B ${line.key.myID} - ${target.key.myID}: $ending $a")
+                        }
                     }
                 }
         }
-        regionLinePairs.forEach {
-            println(it)
-        }
-
-        regionLinePairs.forEach {
-            for (v in it.value)
-                for (r in regionLinePairs)
-                    for (rv in r.value)
-                        if (it !== r && (v.first == rv.first || v.first == rv.second || v.second == rv.first || v.second == rv.second))
-                            println("${it.key} : ${r.key}")
-
-        }
-
     }
 
-    fun show(pane: Pane) {
-        boundaryLines.forEach {
-            it.draw(pane, weight = 1.0, color = Color.RED)
-        }
-        circles.forEach {
-            if (!pane.children.contains(it))
-                pane += it
-        }
-        labels.forEach {
-            if (!pane.children.contains(it))
-                pane += it
+    fun createGraph() {
+
+        val nodes = mutableMapOf<Region, AbstractCell>()
+        val adjacencyList = mutableListOf<Pair<Region, Region>>()
+        val edges = mutableListOf<Edge>()
+
+        regions.forEach {
+            nodes += it to RectangleCell().apply { labelText = it.id }
         }
 
+        regions.forEach { r1 ->
+            r2@ for (r2 in regions) {
+                when {
+                    r1 == r2 || Pair(r1, r2) in adjacencyList || Pair(r2, r1) in adjacencyList -> continue@r2
+                    r1 nextTo r2 -> adjacencyList += Pair(r1, r2)
+                }
+            }
+        }
+
+        adjacencyList.forEach { edges += Edge(nodes[it.first], nodes[it.second]) }
+
+        graph = Graph().apply {
+            beginUpdate()
+            nodes.forEach { model.addCell(it.value) }
+            edges.forEach { model.addEdge(it) }
+            endUpdate()
+            layout(CircleLayout())
+        }
     }
 
-    fun hide(pane: Pane) {
-        boundaryLines.forEach {
-            it.hide(pane)
-        }
-        circles.forEach {
-            if (pane.children.contains(it)) pane.children.remove(it)
-        }
-        labels.forEach {
-            if (pane.children.contains(it)) pane.children.remove(it)
-        }
+    fun show(pane: Pane, graphPane: Pane) {
+        showBoundaries(pane)
+        showGraph(graphPane)
     }
+
+    fun showBoundaries(pane: Pane) {
+        boundaryLines.forEach { it.draw(pane, weight = 1.0, color = Color.RED) }
+        circles.forEach { if (!pane.children.contains(it)) pane += it }
+        labels.forEach { if (!pane.children.contains(it)) pane += it }
+    }
+
+    fun showGraph(graphPane: Pane) {
+        if (!this::graph.isInitialized) createGraph()
+        if (!graphPane.children.contains(graph.canvas)) graphPane += (graph.canvas)
+    }
+
+
+    fun hide(pane: Pane, graphPane: Pane) {
+        hideBoundaries(pane)
+        hideGraph(graphPane)
+    }
+
+    fun hideBoundaries(pane: Pane) {
+        boundaryLines.forEach { it.hide(pane) }
+        circles.forEach { if (pane.children.contains(it)) pane.children.remove(it) }
+        labels.forEach { if (pane.children.contains(it)) pane.children.remove(it) }
+    }
+
+    fun hideGraph(graphPane: Pane) {
+        if (!this::graph.isInitialized) return
+        if (graphPane.children.contains(graph.canvas)) graphPane.children.remove(graph.canvas)
+    }
+
 }

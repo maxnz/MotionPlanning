@@ -23,9 +23,14 @@ data class Line(
     }
     var myID = 0
     lateinit var myLabel: Label
+    var dontTrim = false
 
     constructor(p1: Pair<Double, Double>, p2: Pair<Double, Double>, id: Int) : this(p1, p2) {
         myID = id
+    }
+
+    constructor(p1: Pair<Double, Double>, p2: Pair<Double, Double>, skipTrim: Boolean) : this(p1, p2) {
+        dontTrim = skipTrim
     }
 
     fun setID(id: Int) {
@@ -79,7 +84,9 @@ data class Line(
     }
 
     infix fun intersects(line: Line) = when {
+        this === line -> true
         p1 == line.p1 && p2 == line.p2 || p1 == line.p2 && p2 == line.p1 -> true
+        (p1 on line || p2 on line || line.p1 on this || line.p2 on this) && slope == line.slope -> true
         p1 == line.p1 || p1 == line.p2 || p2 == line.p1 || p2 == line.p2 -> false
         slope == line.slope -> false
         slope == null ->
@@ -126,6 +133,7 @@ data class Line(
     }
 
     fun trim(xmin: Double? = 0.0, xmax: Double? = 500.0, ymin: Double? = 0.0, ymax: Double? = 500.0) {
+        if (dontTrim) return
         val xMin = xmin ?: borderShape.vertices[0].first
         val xMax = xmax ?: borderShape.vertices[2].first
         val yMin = ymin ?: borderShape.vertices[0].second

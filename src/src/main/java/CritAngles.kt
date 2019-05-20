@@ -13,6 +13,7 @@ object CritAngles {
 
 
     private fun findConnections(obstacles: List<Shape>) {
+        connections.clear()
         for (obstacle in obstacles)
             for (v1 in borderShape.vertices)
                 for (v2 in obstacle.vertices) {

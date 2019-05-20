@@ -7,9 +7,6 @@ import tornadofx.singleAssign
 
 const val maxX = 500.0
 const val maxY = 500.0
-val space = Pair(maxX, maxY)
-
-val angles = mutableListOf<Double>()
 
 val borderShape = Boundary(
     Pair(0.0, 0.0),
@@ -18,25 +15,29 @@ val borderShape = Boundary(
     Pair(maxX, 0.0)
 )
 
-var currentSum = 0
 
 var regionToggle: JFXToggleButton by singleAssign()
 var minkowskiToggle: JFXToggleButton by singleAssign()
 
-fun main(args: Array<String>) {
-    try {
-        launch<MyApp>(args)
-    } catch (e: Exception) {
+var currentSpace = ConfigurationSpace()
+var currentSum = 0
+var adjacentBoundaries = mutableListOf<Pair<Int, Int>>()
 
-    }
+
+fun main(args: Array<String>) = try {
+    launch<MyApp>(args)
+} catch (e: Exception) {
 }
 
 
 class MyApp : App(Visualization::class) {
     override fun start(stage: Stage) {
-        super.start(stage)
-        stage.minHeight = maxY + 70
+        minkowskiToggle = JFXToggleButton().apply { isSelected = true }
+        regionToggle = JFXToggleButton().apply { isSelected = true }
+        stage.minHeight = maxY + 80
         stage.minWidth = maxX + 40
+//        stage.maxHeight = maxY + 80
+        super.start(stage)
     }
 }
 
