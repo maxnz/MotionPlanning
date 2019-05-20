@@ -1,3 +1,6 @@
+
+import com.fxgraph.graph.Graph
+import com.fxgraph.graph.ICell
 import com.jfoenix.controls.JFXToggleButton
 import javafx.stage.Stage
 import tornadofx.App
@@ -19,10 +22,11 @@ val borderShape = Boundary(
 var regionToggle: JFXToggleButton by singleAssign()
 var minkowskiToggle: JFXToggleButton by singleAssign()
 
-var currentSpace = ConfigurationSpace()
-var currentSum = 0
-var adjacentBoundaries = mutableListOf<Pair<Int, Int>>()
+lateinit var currentSpace: ConfigurationSpace
 
+val masterGraph = Graph()
+
+val groups = mutableListOf<List<ICell>>()
 
 fun main(args: Array<String>) = try {
     launch<MyApp>(args)
@@ -37,6 +41,7 @@ class MyApp : App(Visualization::class) {
         stage.minHeight = maxY + 80
         stage.minWidth = maxX + 40
 //        stage.maxHeight = maxY + 80
+        currentSpace = ConfigurationSpace()
         super.start(stage)
     }
 }

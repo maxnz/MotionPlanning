@@ -1,9 +1,14 @@
 import javafx.scene.layout.Pane
+import javafx.scene.paint.Color
 import kotlin.math.PI
 
 object MinkowskiSums {
 
-    private val minkowskiSums = mutableListOf<MinkowskiSum>()
+    val minkowskiSums = mutableListOf<MinkowskiSum>()
+    var currentSum = 0
+
+    val numSums: Int
+        get() = minkowskiSums.size
 
     operator fun get(i: Int): MinkowskiSum = minkowskiSums[i % minkowskiSums.size]
 
@@ -25,7 +30,17 @@ object MinkowskiSums {
             })
         }
         minkowskiSums.sortBy { it.angle }
+        masterGraph.beginUpdate()
+        minkowskiSums.forEach {
+            it.createLines()
+        }
+
     }
+
+    fun findByColor(color: Color) {
+        for (a in 0 until numSums) if (minkowskiSums[a].myColor == color) currentSum = a
+    }
+
 
     fun showOne(pane: Pane, ladderPane: Pane, graphPane: Pane, sum: Int = currentSum) {
         get(currentSum).hide(pane, ladderPane, graphPane)

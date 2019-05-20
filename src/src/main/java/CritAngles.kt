@@ -1,5 +1,7 @@
+
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -7,6 +9,7 @@ object CritAngles {
 
     private val critAngleLines = mutableListOf<Line>()
     val critAngles = mutableListOf<Double>()
+    val allAngles = mutableListOf<Double>()
 
 
     private val connections = mutableListOf<Line>()
@@ -55,6 +58,17 @@ object CritAngles {
         }
 
         critAngles.sort()
+
+        for (i in 0 until critAngles.size - 1) {
+            allAngles += critAngles[i]
+            allAngles += critAngles[i] +
+                    (critAngles[i + 1] - critAngles[i]) / 2
+        }
+        allAngles += critAngles.last()
+        allAngles += (critAngles.last() +
+                ((critAngles.first() + 2 * PI) - critAngles.last()) / 2) % (2 * PI)
+
+
     }
 
     fun showCritAngles(pane: Pane) {

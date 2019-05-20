@@ -33,7 +33,7 @@ class ConfigurationSpace {
         obstacle.addRandVertices()
         CritAngles.findCritAngles(listOf(obstacle))
 
-        mSums.createSums(CritAngles.critAngles, shapes, borderShape)
+        mSums.createSums(CritAngles.allAngles, shapes, borderShape)
     }
 
 

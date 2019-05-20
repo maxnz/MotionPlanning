@@ -38,6 +38,8 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
     private var sumLines = mutableListOf<Line>()
     private val inversePoints = mutableListOf<Pair<Double, Double>>()
     val regionBoundaries = RegionBoundaries()
+    val myColor: Color
+        get() = regionBoundaries.myColor
 
     private lateinit var boundaryShape: Shape
 
@@ -87,7 +89,7 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
     // Show functions
 
     fun show(pane: Pane, ladderPane: Pane, graphPane: Pane) {
-        createLines()
+//        createLines()
         pane.apply {
             if (minkowskiToggle.isSelected) showExclusionBoundary(pane)
             if (regionToggle.isSelected) regionBoundaries.showBoundaries(this)
@@ -97,7 +99,6 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
     }
 
     fun showExclusionBoundary(pane: Pane) {
-        createLines()
         pane.apply {
             if (regionToggle.isSelected) regionBoundaries.hideBoundaries(pane)
             sumLines.forEach { it.draw(pane, weight = 3.0, color = Color.ORANGE) }
@@ -131,7 +132,7 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
     // Helper functions
 
-    private fun createLines(reset: Boolean = false) {
+    fun createLines(reset: Boolean = false) {
         when {
             reset -> sumLines.clear()
             sumLines.isNotEmpty() -> return
@@ -147,6 +148,7 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
 
         regionBoundaries.findRegionBoundaries(angle, sumLines, inversePoints, boundaryShape, sumShapes)
         regionBoundaries.findRegions(sumLines)
+        regionBoundaries.createGraph()
     }
 
     private fun withinBoundaries(line: Line): Boolean {

@@ -23,7 +23,7 @@ class Visualization : View() {
                 minHeight = maxY
                 borderShape.show(this)
                 currentSpace.showObstacle(this)
-                MinkowskiSums.showOne(this, ladderPane, graphPane, currentSum)
+                MinkowskiSums.showOne(this, ladderPane, graphPane, MinkowskiSums.currentSum)
             }
 
         val optionsPane = vbox {
@@ -76,7 +76,7 @@ class Visualization : View() {
                         replaceWith(Visualization())
                     }
                 }
-//                this += JFXButton("Graph").apply { action { replaceWith(GraphVisualization()) } }
+                this += JFXButton("Graph").apply { action { replaceWith(GraphVisualization()) } }
             }
 
             hbox {

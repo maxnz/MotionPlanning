@@ -1,7 +1,8 @@
+
 import com.fxgraph.cells.AbstractCell
-import com.fxgraph.edges.Edge
 import com.fxgraph.graph.Graph
 import graph.CircleLayout
+import graph.Edge
 import graph.RectangleCell
 import javafx.scene.control.Label
 import javafx.scene.layout.Pane
@@ -17,9 +18,11 @@ import kotlin.math.sin
 class RegionBoundaries {
 
     private val boundaryLines = mutableListOf<Line>()
+    private val adjacentBoundaries = mutableListOf<Pair<Int, Int>>()
     private val circles = mutableListOf<Circle>()
     private val labels = mutableListOf<Label>()
     private lateinit var graph: Graph
+    var myColor = Color.WHITE
 
     var angle: Double = 0.0
 
@@ -179,6 +182,7 @@ class RegionBoundaries {
 
         boundaryLines.forEach {
             line@ for (line in boundaryLines) {
+                adjacentBoundaries
                 when {
                     it === line || Pair(it.myID, line.myID) in adjacentBoundaries ||
                             Pair(line.myID, it.myID) in adjacentBoundaries -> continue@line
@@ -267,12 +271,12 @@ class RegionBoundaries {
                     if (ending in target.value && line != target) {
                         if (!regions.contains(ending)) {
                             regions += Region(ending, line.key, target.key)
-                            println("A ${line.key.myID} - ${target.key.myID}: $ending")
+//                            println("A ${line.key.myID} - ${target.key.myID}: $ending")
                         } else if (!regions.containsSimilar(ending, line.key, target.key)) {
                             var a = 1
                             regions.find(ending).forEach { it.subID = a++ }
                             regions += Region(ending, line.key, target.key).apply { subID = a }
-                            println("B ${line.key.myID} - ${target.key.myID}: $ending $a")
+//                            println("B ${line.key.myID} - ${target.key.myID}: $ending $a")
                         }
                     }
                 }
@@ -281,12 +285,33 @@ class RegionBoundaries {
 
     fun createGraph() {
 
+        infix fun Region.nextTo(region: Region): Boolean {
+
+            return (boundary1.myID == region.boundary1.myID ||
+                    boundary1.myID == region.boundary2.myID ||
+                    boundary2.myID == region.boundary1.myID ||
+                    boundary2.myID == region.boundary2.myID ||
+                    Pair(boundary1.myID, region.boundary1.myID) in adjacentBoundaries ||
+                    Pair(boundary1.myID, region.boundary2.myID) in adjacentBoundaries ||
+                    Pair(boundary2.myID, region.boundary1.myID) in adjacentBoundaries ||
+                    Pair(boundary2.myID, region.boundary2.myID) in adjacentBoundaries)
+        }
+
         val nodes = mutableMapOf<Region, AbstractCell>()
         val adjacencyList = mutableListOf<Pair<Region, Region>>()
         val edges = mutableListOf<Edge>()
 
+        val color = (colors - usedColors).random()
+        myColor = color
+        usedColors += color
         regions.forEach {
-            nodes += it to RectangleCell().apply { labelText = it.id }
+            nodes += it to RectangleCell().apply {
+                labelText = it.id
+                fill = color
+                stroke = color
+//                width = 10.0
+//                height = 10.0
+            }
         }
 
         regions.forEach { r1 ->
@@ -298,7 +323,10 @@ class RegionBoundaries {
             }
         }
 
-        adjacencyList.forEach { edges += Edge(nodes[it.first], nodes[it.second]) }
+        adjacencyList.forEach { edges += Edge(nodes[it.first]!!, nodes[it.second]!!).apply {
+            this.color = Color.BLUE
+            width = 2.0
+        } }
 
         graph = Graph().apply {
             beginUpdate()
@@ -307,6 +335,18 @@ class RegionBoundaries {
             endUpdate()
             layout(CircleLayout())
         }
+
+        masterGraph.apply {
+            nodes.forEach { model.addCell(it.value) }
+            edges.forEach { model.addEdge(it) }
+            endUpdate()
+            val group = model.allCells.toMutableList()
+            groups.forEach {
+                group.removeAll(it)
+            }
+            groups.add(group)
+        }
+
     }
 
     fun show(pane: Pane, graphPane: Pane) {
@@ -322,7 +362,8 @@ class RegionBoundaries {
 
     fun showGraph(graphPane: Pane) {
         if (!this::graph.isInitialized) createGraph()
-        if (!graphPane.children.contains(graph.canvas)) graphPane += (graph.canvas)
+        println("B")
+        graphPane += (graph.canvas)
     }
 
 
