@@ -1,4 +1,3 @@
-
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import kotlin.math.PI
@@ -11,9 +10,7 @@ object CritAngles {
     val critAngles = mutableListOf<Double>()
     val allAngles = mutableListOf<Double>()
 
-
     private val connections = mutableListOf<Line>()
-
 
     private fun findConnections(obstacles: List<Shape>) {
         connections.clear()
@@ -33,14 +30,10 @@ object CritAngles {
     }
 
     fun findCritAngles(obstacles: List<Shape>) {
-        for (obstacle in obstacles) {
-            obstacle.findCriticalAngles(critAngleLines)
-        }
+        for (obstacle in obstacles) obstacle.findCriticalAngles(critAngleLines)
         findConnections(obstacles)
 
-        for (line in critAngleLines) {
-            if (!critAngles.contains(line.angle)) critAngles.add(line.angle)
-        }
+        for (line in critAngleLines) if (!critAngles.contains(line.angle)) critAngles.add(line.angle)
 
         connections.forEach {
             var line =
@@ -61,14 +54,10 @@ object CritAngles {
 
         for (i in 0 until critAngles.size - 1) {
             allAngles += critAngles[i]
-            allAngles += critAngles[i] +
-                    (critAngles[i + 1] - critAngles[i]) / 2
+            allAngles += critAngles[i] + (critAngles[i + 1] - critAngles[i]) / 2
         }
         allAngles += critAngles.last()
-        allAngles += (critAngles.last() +
-                ((critAngles.first() + 2 * PI) - critAngles.last()) / 2) % (2 * PI)
-
-
+        allAngles += (critAngles.first() + 2 * PI - critAngles.last()) / 2 % (2 * PI)
     }
 
     fun showCritAngles(pane: Pane) {

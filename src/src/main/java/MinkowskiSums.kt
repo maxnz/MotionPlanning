@@ -31,16 +31,12 @@ object MinkowskiSums {
         }
         minkowskiSums.sortBy { it.angle }
         masterGraph.beginUpdate()
-        minkowskiSums.forEach {
-            it.createLines()
-        }
-
+        minkowskiSums.forEach { it.createLines() }
     }
 
     fun findByColor(color: Color) {
         for (a in 0 until numSums) if (minkowskiSums[a].myColor == color) currentSum = a
     }
-
 
     fun showOne(pane: Pane, ladderPane: Pane, graphPane: Pane, sum: Int = currentSum) {
         get(currentSum).hide(pane, ladderPane, graphPane)

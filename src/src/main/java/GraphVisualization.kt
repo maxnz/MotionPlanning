@@ -12,18 +12,19 @@ class GraphVisualization : View() {
 
     override val root = vbox {
 
-        this.add(JFXButton("Back").apply {
-            action {
-                replaceWith(Visualization())
-            }
-        })
+        this.add(JFXButton("Back").apply { action { replaceWith(Visualization()) } })
         for (i in 0 until groups.size) {
             groups[i].forEach { c1 ->
                 groups[(i + 1) % groups.size].forEach { c2 ->
-                    if (c1 is RectangleCell && c2 is RectangleCell && c1.labelText == c2.labelText ||
-                        c1 is CircleCell && c2 is CircleCell && c1.labelText == c2.labelText ||
-                        c1 is RectangleCell && c2 is CircleCell && c1.labelText == c2.labelText ||
-                        c1 is CircleCell && c2 is RectangleCell && c1.labelText == c2.labelText)
+                    if (c1 is RectangleCell && c2 is RectangleCell &&
+                        c1.labelText.split('-')[0] == c2.labelText.split('-')[0] ||
+                        c1 is CircleCell && c2 is CircleCell &&
+                        c1.labelText.split('-')[0] == c2.labelText.split('-')[0] ||
+                        c1 is RectangleCell && c2 is CircleCell &&
+                        c1.labelText.split('-')[0] == c2.labelText.split('-')[0] ||
+                        c1 is CircleCell && c2 is RectangleCell &&
+                        c1.labelText.split('-')[0] == c2.labelText.split('-')[0]
+                    )
                         masterGraph.model.addEdge(Edge(c1, c2).apply {
                             color = Color.GREEN
                             width = 3.0
@@ -32,7 +33,6 @@ class GraphVisualization : View() {
             }
         }
         masterGraph.endUpdate()
-
         masterGraph.apply {
             layout(GroupedCircleLayout())
         }

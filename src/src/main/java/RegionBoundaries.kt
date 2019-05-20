@@ -21,7 +21,7 @@ class RegionBoundaries {
     private val adjacentBoundaries = mutableListOf<Pair<Int, Int>>()
     private val circles = mutableListOf<Circle>()
     private val labels = mutableListOf<Label>()
-    private val showCircles = true
+    private val showCircles = false
     private val showLabels = true
     private lateinit var graph: Graph
     var myColor = Color.WHITE
@@ -56,10 +56,9 @@ class RegionBoundaries {
 
         // Extension functions
 
-        infix fun Pair<Double, Double>.outside(shape: Shape): Boolean {
-            return (first !in shape.vertices[0].first..shape.vertices[2].first ||
+        infix fun Pair<Double, Double>.outside(shape: Shape) =
+            (first !in shape.vertices[0].first..shape.vertices[2].first ||
                     second !in shape.vertices[0].second..shape.vertices[2].second)
-        }
 
         val inversePoints = invert.toMutableList()
 
@@ -116,7 +115,7 @@ class RegionBoundaries {
         val a = (PI / 2) + angle
 
         for (v in vertices) {
-            anchorDists += v.anchorDist().round(2)
+            anchorDists += v.anchorDist()
         }
 
         d@ for (d in anchorDists.groupingBy { it.round(2) }.eachCount()) {
@@ -207,7 +206,7 @@ class RegionBoundaries {
         }
         boundaryLines.sortBy { it.p1.anchorDist() }
         var b = 10
-        boundaryLines.forEach { it.setID(b++) }
+        boundaryLines.forEach { it.setID(b++); it.showID = false }
 
         infix fun Double.between(line: Line) =
             this in if (line.p1.first < line.p2.first) line.p1.first..line.p2.first else line.p2.first..line.p1.first
@@ -251,20 +250,7 @@ class RegionBoundaries {
             }
 //            if (linePairs.isEmpty()) throw Exception()
             if (linePairs.isEmpty()) {
-                it.weight = 5.0
-//                println("==================  ${it.myID}  ==============================")
-//                print("\tP1: ")
-//                val p1ints2 = (it.p1 on lines)
-//                p1ints2.forEach {
-//                    print("${it.myID} ")
-//                }
-//                println()
-//                val p2ints2 = (it.p2 on lines)
-//                print("\tP2: ")
-//                p2ints2.forEach {
-//                    print("${it.myID} ")
-//                }
-//                println()
+//                it.weight = 5.0
             }
 
             endPoints[it] = linePairs
@@ -301,37 +287,32 @@ class RegionBoundaries {
                     if (ending in target.value && line != target) {
                         if (!regions.contains(ending)) {
                             regions += Region(ending, line.key, target.key)
-//                            println("A ${line.key.myID} - ${target.key.myID}: $ending")
                         } else if (!regions.containsSimilar(ending, line.key, target.key)) {
                             var a = 1
                             regions.find(ending).forEach { it.subID = a++ }
                             regions += Region(ending, line.key, target.key).apply { subID = a }
-//                            println("B ${line.key.myID} - ${target.key.myID}: $ending $a")
                         }
                     }
                 }
         }
     }
 
-    fun createGraph(critAngle: Boolean = true) {
+    fun createGraph(critAngle: Boolean = true, dryRun: Boolean = false) {
 
-        infix fun Region.nextTo(region: Region): Boolean {
-
-            return (boundary1.myID == region.boundary1.myID ||
-                    boundary1.myID == region.boundary2.myID ||
-                    boundary2.myID == region.boundary1.myID ||
-                    boundary2.myID == region.boundary2.myID ||
-                    Pair(boundary1.myID, region.boundary1.myID) in adjacentBoundaries ||
-                    Pair(boundary1.myID, region.boundary2.myID) in adjacentBoundaries ||
-                    Pair(boundary2.myID, region.boundary1.myID) in adjacentBoundaries ||
-                    Pair(boundary2.myID, region.boundary2.myID) in adjacentBoundaries)
-        }
+        infix fun Region.nextTo(region: Region) = (boundary1.myID == region.boundary1.myID ||
+                boundary1.myID == region.boundary2.myID ||
+                boundary2.myID == region.boundary1.myID ||
+                boundary2.myID == region.boundary2.myID ||
+                Pair(boundary1.myID, region.boundary1.myID) in adjacentBoundaries ||
+                Pair(boundary1.myID, region.boundary2.myID) in adjacentBoundaries ||
+                Pair(boundary2.myID, region.boundary1.myID) in adjacentBoundaries ||
+                Pair(boundary2.myID, region.boundary2.myID) in adjacentBoundaries)
 
         val nodes = mutableMapOf<Region, AbstractCell>()
         val adjacencyList = mutableListOf<Pair<Region, Region>>()
         val edges = mutableListOf<Edge>()
 
-        val color= colors[z++ % colors.size]
+        val color = colors[z++ % colors.size]
         myColor = color
         regions.forEach {
             nodes += it to
@@ -362,26 +343,26 @@ class RegionBoundaries {
                 width = 2.0
             }
         }
-
-        graph = Graph().apply {
-            beginUpdate()
-            nodes.forEach { model.addCell(it.value) }
-            edges.forEach { model.addEdge(it) }
-            endUpdate()
-            layout(CircleLayout())
-        }
-
-        masterGraph.apply {
-            nodes.forEach { model.addCell(it.value) }
-            edges.forEach { model.addEdge(it) }
-            endUpdate()
-            val group = model.allCells.toMutableList()
-            groups.forEach {
-                group.removeAll(it)
+        if (!dryRun) {
+            graph = Graph().apply {
+                beginUpdate()
+                nodes.forEach { model.addCell(it.value) }
+                edges.forEach { model.addEdge(it) }
+                endUpdate()
+                layout(CircleLayout())
             }
-            groups.add(group)
-        }
 
+            masterGraph.apply {
+                nodes.forEach { model.addCell(it.value) }
+                edges.forEach { model.addEdge(it) }
+                endUpdate()
+                val group = model.allCells.toMutableList()
+                groups.forEach {
+                    group.removeAll(it)
+                }
+                groups.add(group)
+            }
+        }
     }
 
     fun show(pane: Pane, graphPane: Pane) {
@@ -415,49 +396,6 @@ class RegionBoundaries {
     fun hideGraph(graphPane: Pane) {
         if (!this::graph.isInitialized) return
         if (graphPane.children.contains(graph.canvas)) graphPane.children.remove(graph.canvas)
-    }
-
-    fun printAdjacentBoundaries() {
-
-        infix fun Double.between(line: Line) =
-            this in if (line.p1.first < line.p2.first) line.p1.first..line.p2.first else line.p2.first..line.p1.first
-
-        boundaryLines.forEach {
-            line@ for (line in boundaryLines) {
-                when {
-                    it === line -> continue@line
-                    it.intercept != null && it.intercept.round(2) == line.intercept?.round(2) &&
-                            (it.p1.first between line || it.p2.first between line ||
-                                    line.p1.first between it || line.p2.first between it)
-                    -> if (it.myID < line.myID)
-                        println(Pair(it.myID, line.myID))
-                    else
-                        println(Pair(line.myID, it.myID))
-                    else -> {
-                        print(Pair(line.myID, it.myID))
-                        print("  ")
-                        print(it.intercept != null)
-                        print(" : ")
-                        print(it.intercept?.round(2))
-                        print("  ")
-                        print(line.intercept?.round(2))
-                        print("  ")
-                        print(it.intercept?.round(1) == line.intercept?.round(1))
-                        print("(${it.intercept} == ${line.intercept})")
-                        print(" : ")
-                        print(it.p1.first between line)
-                        print("  ")
-                        print(it.p2.first between line)
-                        print("  ")
-                        print(line.p1.first between it)
-                        print("  ")
-                        println(line.p2.first between it)
-                    }
-                }
-            }
-        }
-
-        println(adjacentBoundaries)
     }
 
 }

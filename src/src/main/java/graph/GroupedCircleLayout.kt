@@ -10,7 +10,6 @@ import kotlin.math.sin
 
 class GroupedCircleLayout : Layout {
 
-
     override fun execute(graph: Graph?) {
 
         fun List<ICell>.getGroupDistance(): Double = 50.0 / sin(PI / this.size)

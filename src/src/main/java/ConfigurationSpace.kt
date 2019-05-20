@@ -19,13 +19,7 @@ class ConfigurationSpace {
                     )
                 )
             }
-//                    this.vertices.addAll(listOf(Pair(298.0, 333.0), Pair(343.0, 47.0), Pair(335.0, 137.0), Pair(302.0, 443.0)))
-            try {
-                this.makeConvex()
-            } catch (e: IndexOutOfBoundsException) {
-                this.addRandVertices(1)
-                return
-            }
+            this.makeConvex()
             this.addLines()
             this.setLineIDs(startID = 5)
         }

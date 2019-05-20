@@ -41,7 +41,6 @@ class MyApp : App(Visualization::class) {
         regionToggle = JFXToggleButton().apply { isSelected = true }
         stage.minHeight = maxY + 80
         stage.minWidth = maxX + 40
-//        stage.maxHeight = maxY + 80
         currentSpace = ConfigurationSpace()
         super.start(stage)
     }

@@ -10,10 +10,7 @@ import javafx.scene.shape.Polygon
 import javafx.scene.transform.Scale
 
 
-
-
 class TriangleCell : AbstractCell() {
-
 
     var stroke: Color = Color.RED
     var fill: Color = Color.RED

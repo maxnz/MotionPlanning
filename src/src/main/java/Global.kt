@@ -4,9 +4,6 @@ import kotlin.math.pow
 import kotlin.math.round
 import kotlin.math.sqrt
 
-var nextLineID = 1
-    get() = field++
-
 const val DEFAULTPRECISION = 4
 
 fun Double.round(decimals: Int = DEFAULTPRECISION): Double {
@@ -41,13 +38,12 @@ fun makeConvex(points: MutableList<Pair<Double, Double>>): MutableList<Pair<Doub
 
     vertices.sortBy { it.first }    // sorting by x-value
     val removals = mutableListOf<Pair<Double, Double>>()
-    for (pair in vertices) {
+    for (pair in vertices)
         if (vertices.reduce { acc: Pair<Double, Double>, vertex: Pair<Double, Double> ->
                 if (vertex.first == pair.first && vertex.second == pair.second && vertex !== pair &&
                     !removals.contains(vertex)
                 ) Pair(1.0, 0.0) else acc
             }.first == 1.0) removals.add(pair)
-    }
     vertices.removeAll(removals)        // remove duplicates
 
     val anchor = vertices.first()       // anchor is the furthest left
@@ -57,9 +53,7 @@ fun makeConvex(points: MutableList<Pair<Double, Double>>): MutableList<Pair<Doub
     vertices.removeAll(vertical)        // Remove any vertices that could cause a divide by 0 error
 
     // Sort vertices
-    vertices.sortBy {
-        (it.second - anchor.second) / (it.first - anchor.first)
-    }
+    vertices.sortBy { (it.second - anchor.second) / (it.first - anchor.first) }
 
     val sVert = vertical.sortedBy { it.second }.firstOrNull()
     val lVert = vertical.sortedBy { it.second }.lastOrNull()
@@ -84,33 +78,28 @@ fun makeConvex(points: MutableList<Pair<Double, Double>>): MutableList<Pair<Doub
                         - ((hull[hull.lastIndex - b].second - hull[hull.lastIndex - a].second)
                         * (hull[hull.lastIndex - c].first - hull[hull.lastIndex - a].first))
                 ) / 2.0 > 0       // Also removes collinear points
-
     }
 
     // Graham Scan Algorithm
     for (vertex in vertices) {
         hull.add(vertex)
-        while (!checkLeft()) {
-            hull.removeAt(hull.lastIndex - 1)
-        }
+        while (!checkLeft()) hull.removeAt(hull.lastIndex - 1)
     }
     vertices = hull
     vertices.removeAt(vertices.size - 1)
 
     // Remove any remaining collinear points
     val removeVerts = mutableListOf<Pair<Double, Double>>()
-    for (i in 0 until vertices.size) {
+    for (i in 0 until vertices.size)
         if (Line(vertices[i], vertices[(i + 1) % vertices.size]).angle.round(3) == Line(
                 vertices[(i + 1) % vertices.size],
                 vertices[(i + 2) % vertices.size]
             ).angle.round(3)
         ) removeVerts += vertices[(i + 1) % vertices.size]
-    }
     for (vert in removeVerts) vertices.remove(vert)
 
     return vertices
 }
-
 
 infix fun Pair<Double, Double>.on(line: Line) = line.intersects(this)
 
@@ -127,17 +116,10 @@ fun Pair<Double, Double>.round(precision: Int = DEFAULTPRECISION): Pair<Double, 
     this.second.round(precision)
 )
 
-val usedColors = mutableListOf<Color>()
 val colors = listOf(
-//    Color.ALICEBLUE,
-//    Color.ANTIQUEWHITE,
     Color.AQUA,
     Color.AQUAMARINE,
-//    Color.AZURE,
-//    Color.BEIGE,
-//    Color.BISQUE,
     Color.BLACK,
-//    Color.BLANCHEDALMOND,
     Color.BLUE,
     Color.BLUEVIOLET,
     Color.BROWN,
@@ -147,7 +129,6 @@ val colors = listOf(
     Color.CHOCOLATE,
     Color.CORAL,
     Color.CORNFLOWERBLUE,
-//    Color.CORNSILK,
     Color.CRIMSON,
     Color.CYAN,
     Color.DARKBLUE,
@@ -175,31 +156,23 @@ val colors = listOf(
     Color.DIMGREY,
     Color.DODGERBLUE,
     Color.FIREBRICK,
-//    Color.FLORALWHITE,
     Color.FORESTGREEN,
     Color.FUCHSIA,
     Color.GAINSBORO,
-//    Color.GHOSTWHITE,
     Color.GOLD,
     Color.GOLDENROD,
     Color.GRAY,
     Color.GREEN,
     Color.GREENYELLOW,
     Color.GREY,
-//    Color.HONEYDEW,
     Color.HOTPINK,
     Color.INDIANRED,
     Color.INDIGO,
-//    Color.IVORY,
     Color.KHAKI,
     Color.LAVENDER,
-    Color.LAVENDERBLUSH,
     Color.LAWNGREEN,
-//    Color.LEMONCHIFFON,
     Color.LIGHTBLUE,
     Color.LIGHTCORAL,
-//    Color.LIGHTCYAN,
-//    Color.LIGHTGOLDENRODYELLOW,
     Color.LIGHTGRAY,
     Color.LIGHTGREEN,
     Color.LIGHTGREY,
@@ -210,10 +183,8 @@ val colors = listOf(
     Color.LIGHTSLATEGRAY,
     Color.LIGHTSLATEGREY,
     Color.LIGHTSTEELBLUE,
-//    Color.LIGHTYELLOW,
     Color.LIME,
     Color.LIMEGREEN,
-    Color.LINEN,
     Color.MAGENTA,
     Color.MAROON,
     Color.MEDIUMAQUAMARINE,
@@ -226,12 +197,9 @@ val colors = listOf(
     Color.MEDIUMTURQUOISE,
     Color.MEDIUMVIOLETRED,
     Color.MIDNIGHTBLUE,
-//    Color.MINTCREAM,
-//    Color.MISTYROSE,
     Color.MOCCASIN,
     Color.NAVAJOWHITE,
     Color.NAVY,
-//    Color.OLDLACE,
     Color.OLIVE,
     Color.OLIVEDRAB,
     Color.ORANGE,
@@ -241,7 +209,6 @@ val colors = listOf(
     Color.PALEGREEN,
     Color.PALETURQUOISE,
     Color.PALEVIOLETRED,
-//    Color.PAPAYAWHIP,
     Color.PEACHPUFF,
     Color.PERU,
     Color.PINK,
@@ -255,75 +222,19 @@ val colors = listOf(
     Color.SALMON,
     Color.SANDYBROWN,
     Color.SEAGREEN,
-//    Color.SEASHELL,
     Color.SIENNA,
     Color.SILVER,
     Color.SKYBLUE,
     Color.SLATEBLUE,
     Color.SLATEGRAY,
     Color.SLATEGREY,
-//    Color.SNOW,
     Color.SPRINGGREEN,
     Color.STEELBLUE,
-//    Color.TAN,
     Color.TEAL,
     Color.THISTLE,
     Color.TOMATO,
-//    Color.TRANSPARENT,
     Color.TURQUOISE,
     Color.VIOLET,
     Color.WHEAT,
-//    Color.WHITE,
-//    Color.WHITESMOKE,
-//    Color.YELLOW,
     Color.YELLOWGREEN
-).shuffled()
-
-val darkColors = listOf(
-    Color.BLACK,
-    Color.BLUE,
-    Color.BLUEVIOLET,
-    Color.BROWN,
-    Color.CHOCOLATE,
-    Color.CRIMSON,
-    Color.DARKBLUE,
-    Color.DARKCYAN,
-    Color.DARKGREEN,
-    Color.DARKMAGENTA,
-    Color.DARKOLIVEGREEN,
-    Color.DARKORCHID,
-    Color.DARKRED,
-    Color.DARKSLATEBLUE,
-    Color.DARKSLATEGRAY,
-    Color.DARKVIOLET,
-    Color.DIMGRAY,
-    Color.FIREBRICK,
-    Color.FORESTGREEN,
-    Color.GRAY,
-    Color.GREEN,
-    Color.INDIANRED,
-    Color.INDIGO,
-    Color.LIGHTSLATEGRAY,
-    Color.MAGENTA,
-    Color.MAROON,
-    Color.MEDIUMBLUE,
-    Color.MEDIUMPURPLE,
-    Color.MEDIUMSLATEBLUE,
-    Color.MEDIUMVIOLETRED,
-    Color.MIDNIGHTBLUE,
-    Color.NAVY,
-    Color.OLIVE,
-    Color.OLIVEDRAB,
-    Color.PALEVIOLETRED,
-    Color.PERU,
-    Color.PURPLE,
-    Color.RED,
-    Color.ROYALBLUE,
-    Color.SADDLEBROWN,
-    Color.SEAGREEN,
-    Color.SIENNA,
-    Color.SLATEBLUE,
-    Color.SLATEGRAY,
-    Color.STEELBLUE,
-    Color.TEAL
 )

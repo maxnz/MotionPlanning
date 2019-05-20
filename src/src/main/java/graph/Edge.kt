@@ -12,6 +12,10 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Line
 import javafx.scene.text.Text
 
+/*
+    Converted to Kotlin by IntelliJ before modification
+    Original code: https://github.com/sirolf2009/fxgraph/blob/master/src/main/java/com/fxgraph/edges/Edge.java
+ */
 
 class Edge(source: ICell, target: ICell) : AbstractEdge(source, target) {
 
@@ -27,10 +31,6 @@ class Edge(source: ICell, target: ICell) : AbstractEdge(source, target) {
 
     override fun getGraphic(graph: Graph): EdgeGraphic {
         return EdgeGraphic(graph, this, textProperty)
-    }
-
-    fun textProperty(): StringProperty {
-        return textProperty
     }
 
     inner class EdgeGraphic(graph: Graph, edge: Edge, textProperty: StringProperty) : Pane() {

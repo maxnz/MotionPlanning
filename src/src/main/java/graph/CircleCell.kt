@@ -3,11 +3,10 @@ package graph
 import com.fxgraph.cells.AbstractCell
 import com.fxgraph.cells.CellGestures
 import com.fxgraph.graph.Graph
-import darkColors
-import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.Label
-import javafx.scene.layout.*
+import javafx.scene.layout.Region
+import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 
@@ -31,11 +30,7 @@ class CircleCell : AbstractCell() {
             fill = this@CircleCell.fill
         }
 
-        val text = Label(labelText).apply {
-            textFill = if (fill in darkColors) Color.WHITE else Color.BLACK
-            background = Background(BackgroundFill(fill, CornerRadii.EMPTY, Insets.EMPTY))
-        }
-
+        val text = Label(labelText)
 
         val pane = VBox(view, text).apply {
             alignment = Pos.CENTER

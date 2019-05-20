@@ -3,37 +3,29 @@ package graph
 import com.fxgraph.cells.AbstractCell
 import com.fxgraph.cells.CellGestures
 import com.fxgraph.graph.Graph
-import darkColors
-import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.Label
-import javafx.scene.layout.*
+import javafx.scene.layout.Region
+import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 
 
 class RectangleCell : AbstractCell() {
 
-
     var stroke: Color = Color.DODGERBLUE
     var fill: Color = Color.DODGERBLUE
     var width = 50.0
     var height = 50.0
-
     var resizable = false
-
     var labelText = ""
-
 
     override fun getGraphic(p0: Graph?): Region {
         val view = Rectangle(width, height).apply {
             stroke = this@RectangleCell.stroke
             fill = this@RectangleCell.fill
         }
-        val text = Label(labelText).apply {
-            textFill = if (fill in darkColors) Color.WHITE else Color.BLACK
-            background = Background(BackgroundFill(fill, CornerRadii.EMPTY, Insets.EMPTY))
-        }
+        val text = Label(labelText)
 
         val pane = VBox(view, text).apply {
             alignment = Pos.CENTER
