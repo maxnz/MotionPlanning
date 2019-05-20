@@ -1,6 +1,6 @@
-
 import com.fxgraph.cells.AbstractCell
 import com.fxgraph.graph.Graph
+import graph.CircleCell
 import graph.CircleLayout
 import graph.Edge
 import graph.RectangleCell
@@ -21,6 +21,8 @@ class RegionBoundaries {
     private val adjacentBoundaries = mutableListOf<Pair<Int, Int>>()
     private val circles = mutableListOf<Circle>()
     private val labels = mutableListOf<Label>()
+    private val showCircles = true
+    private val showLabels = true
     private lateinit var graph: Graph
     var myColor = Color.WHITE
 
@@ -69,6 +71,33 @@ class RegionBoundaries {
             in PI..(3 * PI / 2) -> inversePoints += (Pair(500.0, 500.0))
             in (3 * PI / 2)..(2 * PI) -> inversePoints += (Pair(0.0, 500.0))
         }
+
+        val extraVerts = mutableListOf<Pair<Double, Double>>()
+
+        for (shape in obstacles)
+            if (shape !== boundary)
+                for (line in shape.lines)
+                    if (line in lines)
+                        for (bline in boundary.lines)
+                            if (line != bline && line intersects bline) {
+                                val intersection = line intersection bline
+                                if (intersection != null) extraVerts += intersection
+                            }
+
+        extraVerts.forEach { v ->
+            boundaryLines.add(
+                Line(Pair(v.first, v.second), Pair(v.first, v.second))
+                    .apply {
+                        circles += Circle().apply {
+                            radius = 5.0
+                            fill = Color.GREEN
+                            centerX = p2.first
+                            centerY = p2.second
+                        }
+                    }
+            )
+        }
+
 
         val vertices = lines.vertices()
             .filter { it !in boundary.vertices }
@@ -150,7 +179,10 @@ class RegionBoundaries {
             boundaryLines.add(
                 Line(
                     Pair(v.first, v.second),
-                    Pair(v.first - (multiplier * 1000.0) * cos(angle), v.second - (multiplier * 1000.0) * sin(angle))
+                    Pair(
+                        v.first - (multiplier * 1000.0) * cos(angle),
+                        v.second - (multiplier * 1000.0) * sin(angle)
+                    )
                 ).apply line@{
                     p2 = mutableListOf<Pair<Double, Double>>()
                         .apply { lines.forEach { if (this@line intersects it) add((this@line intersection it)!!) } }
@@ -182,11 +214,10 @@ class RegionBoundaries {
 
         boundaryLines.forEach {
             line@ for (line in boundaryLines) {
-                adjacentBoundaries
                 when {
                     it === line || Pair(it.myID, line.myID) in adjacentBoundaries ||
                             Pair(line.myID, it.myID) in adjacentBoundaries -> continue@line
-                    it.intercept != null && it.intercept.round(2) == line.intercept?.round(2) &&
+                    it.intercept != null && it.intercept.round(1) == line.intercept?.round(1) &&
                             (it.p1.first between line || it.p2.first between line ||
                                     line.p1.first between it || line.p2.first between it)
                     -> if (it.myID < line.myID)
@@ -196,7 +227,6 @@ class RegionBoundaries {
                 }
             }
         }
-
 
     }
 
@@ -222,19 +252,19 @@ class RegionBoundaries {
 //            if (linePairs.isEmpty()) throw Exception()
             if (linePairs.isEmpty()) {
                 it.weight = 5.0
-                println("==================  ${it.myID}  ==============================")
-                print("\tP1: ")
-                val p1ints2 = (it.p1 on lines)
-                p1ints2.forEach {
-                    print("${it.myID} ")
-                }
-                println()
-                val p2ints2 = (it.p2 on lines)
-                print("\tP2: ")
-                p2ints2.forEach {
-                    print("${it.myID} ")
-                }
-                println()
+//                println("==================  ${it.myID}  ==============================")
+//                print("\tP1: ")
+//                val p1ints2 = (it.p1 on lines)
+//                p1ints2.forEach {
+//                    print("${it.myID} ")
+//                }
+//                println()
+//                val p2ints2 = (it.p2 on lines)
+//                print("\tP2: ")
+//                p2ints2.forEach {
+//                    print("${it.myID} ")
+//                }
+//                println()
             }
 
             endPoints[it] = linePairs
@@ -283,7 +313,7 @@ class RegionBoundaries {
         }
     }
 
-    fun createGraph() {
+    fun createGraph(critAngle: Boolean = true) {
 
         infix fun Region.nextTo(region: Region): Boolean {
 
@@ -301,17 +331,20 @@ class RegionBoundaries {
         val adjacencyList = mutableListOf<Pair<Region, Region>>()
         val edges = mutableListOf<Edge>()
 
-        val color = (colors - usedColors).random()
+        val color= colors[z++ % colors.size]
         myColor = color
-        usedColors += color
         regions.forEach {
-            nodes += it to RectangleCell().apply {
-                labelText = it.id
-                fill = color
-                stroke = color
-//                width = 10.0
-//                height = 10.0
-            }
+            nodes += it to
+                    if (critAngle) RectangleCell().apply {
+                        labelText = it.id
+                        fill = color
+                        stroke = color
+                    }
+                    else CircleCell().apply {
+                        labelText = it.id
+                        fill = color
+                        stroke = color
+                    }
         }
 
         regions.forEach { r1 ->
@@ -323,10 +356,12 @@ class RegionBoundaries {
             }
         }
 
-        adjacencyList.forEach { edges += Edge(nodes[it.first]!!, nodes[it.second]!!).apply {
-            this.color = Color.BLUE
-            width = 2.0
-        } }
+        adjacencyList.forEach {
+            edges += Edge(nodes[it.first]!!, nodes[it.second]!!).apply {
+                this.color = Color.BLUE
+                width = 2.0
+            }
+        }
 
         graph = Graph().apply {
             beginUpdate()
@@ -356,13 +391,12 @@ class RegionBoundaries {
 
     fun showBoundaries(pane: Pane) {
         boundaryLines.forEach { it.draw(pane, weight = 1.0, color = Color.RED) }
-        circles.forEach { if (!pane.children.contains(it)) pane += it }
-        labels.forEach { if (!pane.children.contains(it)) pane += it }
+        if (showCircles) circles.forEach { if (!pane.children.contains(it)) pane += it }
+        if (showLabels) labels.forEach { if (!pane.children.contains(it)) pane += it }
     }
 
     fun showGraph(graphPane: Pane) {
         if (!this::graph.isInitialized) createGraph()
-        println("B")
         graphPane += (graph.canvas)
     }
 
@@ -381,6 +415,49 @@ class RegionBoundaries {
     fun hideGraph(graphPane: Pane) {
         if (!this::graph.isInitialized) return
         if (graphPane.children.contains(graph.canvas)) graphPane.children.remove(graph.canvas)
+    }
+
+    fun printAdjacentBoundaries() {
+
+        infix fun Double.between(line: Line) =
+            this in if (line.p1.first < line.p2.first) line.p1.first..line.p2.first else line.p2.first..line.p1.first
+
+        boundaryLines.forEach {
+            line@ for (line in boundaryLines) {
+                when {
+                    it === line -> continue@line
+                    it.intercept != null && it.intercept.round(2) == line.intercept?.round(2) &&
+                            (it.p1.first between line || it.p2.first between line ||
+                                    line.p1.first between it || line.p2.first between it)
+                    -> if (it.myID < line.myID)
+                        println(Pair(it.myID, line.myID))
+                    else
+                        println(Pair(line.myID, it.myID))
+                    else -> {
+                        print(Pair(line.myID, it.myID))
+                        print("  ")
+                        print(it.intercept != null)
+                        print(" : ")
+                        print(it.intercept?.round(2))
+                        print("  ")
+                        print(line.intercept?.round(2))
+                        print("  ")
+                        print(it.intercept?.round(1) == line.intercept?.round(1))
+                        print("(${it.intercept} == ${line.intercept})")
+                        print(" : ")
+                        print(it.p1.first between line)
+                        print("  ")
+                        print(it.p2.first between line)
+                        print("  ")
+                        print(line.p1.first between it)
+                        print("  ")
+                        println(line.p2.first between it)
+                    }
+                }
+            }
+        }
+
+        println(adjacentBoundaries)
     }
 
 }

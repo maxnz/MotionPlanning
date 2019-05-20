@@ -20,9 +20,7 @@ class GroupedCircleLayout : Layout {
         val a = 2 * PI / groups.size
         val groupDistanceBetween = groups.maxBy { it.getGroupDistance() }!!.getGroupDistance() * 3
         val groupDistanceFromCenter = (groupDistanceBetween * 0.5) / sin(a * 0.5)
-
-        val centerPoint = groupDistanceFromCenter + 20.0
-
+        val centerPoint = 20.0
         var groupAngle = 0.0
 
         for (group in groups) {

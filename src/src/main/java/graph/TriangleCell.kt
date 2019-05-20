@@ -22,6 +22,7 @@ class TriangleCell : AbstractCell() {
 
     var resizable = false
 
+    var labelText = ""
 
     override fun getGraphic(p0: Graph?): Region {
         val view = Polygon(width / 2, 0.0, width, height, 0.0, height)

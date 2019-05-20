@@ -9,38 +9,38 @@ import javafx.geometry.Pos
 import javafx.scene.control.Label
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
-import javafx.scene.shape.Rectangle
+import javafx.scene.shape.Circle
 
 
-class RectangleCell : AbstractCell() {
+class CircleCell : AbstractCell() {
 
 
-    var stroke: Color = Color.DODGERBLUE
-    var fill: Color = Color.DODGERBLUE
+    var stroke: Color = Color.RED
+    var fill: Color = Color.RED
     var width = 50.0
-    var height = 50.0
+    var height = width
+    var radius = width / 2
 
     var resizable = false
 
     var labelText = ""
 
-
     override fun getGraphic(p0: Graph?): Region {
-        val view = Rectangle(width, height).apply {
-            stroke = this@RectangleCell.stroke
-            fill = this@RectangleCell.fill
+        val view = Circle(radius).apply {
+            stroke = this@CircleCell.stroke
+            fill = this@CircleCell.fill
         }
+
         val text = Label(labelText).apply {
             textFill = if (fill in darkColors) Color.WHITE else Color.BLACK
             background = Background(BackgroundFill(fill, CornerRadii.EMPTY, Insets.EMPTY))
         }
 
+
         val pane = VBox(view, text).apply {
             alignment = Pos.CENTER
         }
         pane.setPrefSize(width, height)
-        view.widthProperty().bind(pane.prefWidthProperty())
-        view.heightProperty().bind(pane.prefHeightProperty())
         if (resizable) CellGestures.makeResizable(pane)
 
         return pane

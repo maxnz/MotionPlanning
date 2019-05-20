@@ -1,5 +1,5 @@
-
 import com.jfoenix.controls.JFXButton
+import graph.CircleCell
 import graph.Edge
 import graph.GroupedCircleLayout
 import graph.RectangleCell
@@ -20,7 +20,10 @@ class GraphVisualization : View() {
         for (i in 0 until groups.size) {
             groups[i].forEach { c1 ->
                 groups[(i + 1) % groups.size].forEach { c2 ->
-                    if (c1 is RectangleCell && c2 is RectangleCell && c1.labelText == c2.labelText)
+                    if (c1 is RectangleCell && c2 is RectangleCell && c1.labelText == c2.labelText ||
+                        c1 is CircleCell && c2 is CircleCell && c1.labelText == c2.labelText ||
+                        c1 is RectangleCell && c2 is CircleCell && c1.labelText == c2.labelText ||
+                        c1 is CircleCell && c2 is RectangleCell && c1.labelText == c2.labelText)
                         masterGraph.model.addEdge(Edge(c1, c2).apply {
                             color = Color.GREEN
                             width = 3.0

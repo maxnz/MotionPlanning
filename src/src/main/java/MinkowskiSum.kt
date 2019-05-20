@@ -144,11 +144,16 @@ class MinkowskiSum(val angle: Double, ladderLength: Double) : Shape() {
             sumLines.addAll(it.lines)
         }
 
-        for (line in sumLines.toMutableList()) if (!withinBoundaries(line)) sumLines.remove(line)
+        val lines2 = sumLines.toMutableList()
+        for (line in lines2) {
+            if (!withinBoundaries(line)) sumLines.remove(line)
+        }
+
+//        for (line in sumLines.toMutableList()) if (!withinBoundaries(line)) sumLines.remove(line)
 
         regionBoundaries.findRegionBoundaries(angle, sumLines, inversePoints, boundaryShape, sumShapes)
         regionBoundaries.findRegions(sumLines)
-        regionBoundaries.createGraph()
+        regionBoundaries.createGraph(angle in CritAngles.critAngles || angle - PI in CritAngles.critAngles)
     }
 
     private fun withinBoundaries(line: Line): Boolean {

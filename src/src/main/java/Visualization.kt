@@ -77,6 +77,7 @@ class Visualization : View() {
                     }
                 }
                 this += JFXButton("Graph").apply { action { replaceWith(GraphVisualization()) } }
+                this += JFXButton("Print AB").apply { action { MinkowskiSums[MinkowskiSums.currentSum].regionBoundaries.printAdjacentBoundaries() } }
             }
 
             hbox {
@@ -88,6 +89,7 @@ class Visualization : View() {
 
         top { pane { minHeight = 10.0 } }
         bottom {
+            minHeight = 400.0
             style { alignment = Pos.CENTER }
             this += graphPane
         }
